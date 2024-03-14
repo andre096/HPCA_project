@@ -11,10 +11,6 @@ build_omp:
 	$(CXX) $(OMP_CXXFLAGS) $(OMP_EXE_NAME) $(OMP_SOURCES) $(OMP_LDFLAGS)
 
 
-run:
-	./$(SYCL_EXE_NAME)
-
-
 run_omp:
 	./$(OMP_EXE_NAME)
 
