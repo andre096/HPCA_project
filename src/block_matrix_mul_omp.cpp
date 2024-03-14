@@ -3,8 +3,8 @@
 #include <omp.h>
 
 #define M 3
-#define N 4
-#define P 5
+#define N 3
+#define P 3
 #define BLOCK_SIZE 2 // Define the block size
 
 using namespace std;
@@ -14,8 +14,8 @@ using namespace std;
 void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]);
 
 int main(void) {
-    float a[M][N];
-    float b[N][P];
+    float a[M][N] = {{1.0,2.0,3.0},{4.0,5.0,6.0},{7.0,8.0,9.0}};
+    float b[N][P] = {{9.0,8.0,7.0},{6.0,5.0,4.0},{3.0,2.0,1.0}};
     float c[M][P];
 
     // Initialize matrices a and b (as before)
