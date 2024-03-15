@@ -2,10 +2,10 @@
 #include <vector>
 #include <omp.h>
 
-#define M 3
-#define N 3
-#define P 3
-#define BLOCK_SIZE 2 // Define the block size
+#define M 100
+#define N 100
+#define P 100
+#define BLOCK_SIZE 10 // Define the block size
 
 using namespace std;
 
@@ -14,8 +14,8 @@ using namespace std;
 void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]);
 
 int main(void) {
-    float a[M][N] = {{1.0,2.0,3.0},{4.0,5.0,6.0},{7.0,8.0,9.0}};
-    float b[N][P] = {{9.0,8.0,7.0},{6.0,5.0,4.0},{3.0,2.0,1.0}};
+    float a[M][N];
+    float b[N][P];
     float c[M][P];
 
     // Initialize matrices a and b (as before)
@@ -37,6 +37,18 @@ int main(void) {
 
 void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
     int i, j, k, ii, jj, kk;
+
+    // Each element of matrix a is 1.
+    for (i = 0; i < M; i++)
+        for (j = 0; j < N; j++) a[i][j] = 1.0f;
+
+    // Each column of b is the sequence 1,2,...,N
+    for (i = 0; i < N; i++)
+        for (j = 0; j < P; j++) b[i][j] = i + 1.0f;
+
+    for (i = 0; i < M; i++)
+        for (j = 0; j < P; j++) c[i][j] = 0.0f;
+	
 	
 	double itime, ftime, exec_time;
 	itime = omp_get_wtime();
