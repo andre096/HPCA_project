@@ -4,9 +4,9 @@
 #include <iostream>
 #include <limits>
 
-#define M 100
-#define N 100
-#define P 100
+#define M 1000
+#define N 1000
+#define P 1000
 #define BLOCK_SIZE 10 // Define the block size
 
 using namespace std;
@@ -17,7 +17,7 @@ float c[M][P];
 
 void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]);
 
-int VerifyResult(float (*c_back)[P]);
+void VerifyResult(float (*c_back)[P]);
 
 int main(void) {
 	int Result1;
@@ -26,7 +26,7 @@ int main(void) {
 	
 	
 	cout << "Result of matrix multiplication using OpenMP: ";
-    Result1 = VerifyResult(c);	
+    VerifyResult(c);	
 	
 
     return 0;
@@ -137,10 +137,8 @@ int verifyResult(float (*c_back)[P]){
 
 	  if (!mismatch_found) {
 		cout << "Success - The results are correct!\n";
-		return 0;
 	  } else {
 		cout << "Fail - The results mismatch!\n";
-		return -1;
 	  }
 		
 }
