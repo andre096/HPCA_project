@@ -34,7 +34,7 @@ build_sycl:
 	$(CXX) $(SYCL_CXXFLAGS) $(SYCL_EXE_NAME) $(SYCL_SOURCES) $(OMP_LDFLAGS)
 
 run_sycl:
-	/$(SYCL_EXE_NAME)
+	./$(SYCL_EXE_NAME)
 
 clean: 
 	rm -rf $(OMP_EXE_NAME) $(EXE_NAME) $(SYCL_EXE_NAME)
