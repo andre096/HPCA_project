@@ -1,5 +1,6 @@
 #include <CL/sycl.hpp>
 #include <iostream>
+#include <chrono>
 
 #define M 1000
 #define N 1000
@@ -8,6 +9,7 @@
 
 using namespace std;
 using namespace cl::sycl;
+using namespace std::chrono;
 
 class MatrixMul;
 
@@ -52,17 +54,19 @@ int main() {
         }
     }
 
-    double itime, ftime, exec_time;
-    itime = omp_get_wtime();
+    	// Measure the execution time
+        auto start_time = high_resolution_clock::now();
 
     // Perform matrix multiplication
     MatrixMulBlock(reinterpret_cast<float *>(a),
                    reinterpret_cast<float *>(b),
                    reinterpret_cast<float *>(c));
 
-    ftime = omp_get_wtime();
-    exec_time = ftime - itime;
-    printf("Time taken for parallelized block multiplication is %f \n", exec_time);
+    // Measure the execution time
+        auto end_time = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(end_time - start_time);
+
+        cout << "Execution time: " << duration.count() << " milliseconds" << "\n";
 
     return 0;
 }
