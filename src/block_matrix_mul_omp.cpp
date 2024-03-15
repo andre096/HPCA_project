@@ -13,16 +13,19 @@ float a[M][N];
 float b[N][P];
 float c[M][P];
 
-
 void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]);
 
+int VerifyResult(float (*c_back)[P]);
+
 int main(void) {
-	
+
     MatrixMulBlock(a, b, c);
 	
-	cout << "Result of matrix multiplication using OpenMP: ";
-	Result1 = VerifyResult(c);
 	
+	cout << "Result of matrix multiplication using OpenMP: ";
+    Result1 = VerifyResult(c);	
+	
+
     return 0;
 }
 
