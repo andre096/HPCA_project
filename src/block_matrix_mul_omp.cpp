@@ -77,7 +77,7 @@ bool ValueSame(float a, float b) {
 }
 
 
-int verifyResult(float (*c_back)[P]){
+void verifyResult(float (*c_back)[P]){
 	// Check that the results are correct by comparing with host computing.
 	int i, j, k, ii, jj, kk;
 
