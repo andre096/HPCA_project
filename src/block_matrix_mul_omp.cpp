@@ -9,17 +9,20 @@
 
 using namespace std;
 
+float a[M][N];
+float b[N][P];
+float c[M][P];
 
 
 void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]);
 
 int main(void) {
-    float a[M][N];
-    float b[N][P];
-    float c[M][P];
-
+	
     MatrixMulBlock(a, b, c);
-
+	
+	cout << "Result of matrix multiplication using OpenMP: ";
+	Result1 = VerifyResult(c);
+	
     return 0;
 }
 
