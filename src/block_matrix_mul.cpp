@@ -24,13 +24,13 @@ int main(void) {
     MatrixMulBlock(a, b, c);
 
     // Print the result matrix c
-    printf("Result Matrix c:\n");
-    for (int i = 0; i < M; i++) {
-        for (int j = 0; j < P; j++) {
-            printf("%f ", c[i][j]);
-        }
-        printf("\n");
-    }
+    // printf("Result Matrix c:\n");
+    // for (int i = 0; i < M; i++) {
+    //     for (int j = 0; j < P; j++) {
+    //         printf("%f ", c[i][j]);
+    //     }
+    //     printf("\n");
+    // }
 
     return 0;
 }
