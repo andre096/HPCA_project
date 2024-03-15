@@ -97,27 +97,30 @@ int main() {
 				accessor c(c_buf, h, write_only);
 
 				h.parallel_for(range(M, P), [=](auto index) {
-					size_t row = index[0];
-					size_t col = index[1];
+				  size_t row = index[0];
+				  size_t col = index[1];
 
-					float sum = 0.0f;
+				  // Vectorize these variables based on the chosen vector type (e.g., float4)
+				  float4 sum = 0.0f;
+				  size_t start_row = row - row % BLOCK_SIZE;
+				  size_t start_col = col - col % BLOCK_SIZE;
 
-					// Calculate the starting indices of the current block
-					size_t start_row = row - row % BLOCK_SIZE;
-					size_t start_col = col - col % BLOCK_SIZE;
+				  // Loop over tiles with vectorized strides
+				  for (size_t k = 0; k < N; k += BLOCK_SIZE/sizeof(float4)) {
+					// Load vector elements from matrices A and B
+					float4 a_vec = load(a_buf, {start_row, k});
+					float4 b_vec = load(b_buf, {k, start_col});
 
-					// Perform block matrix multiplication
-					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-						for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
-							for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
-								sum += a[{i, k + jj}] * b[{k + ii, j}];
-							}
-						}
-					}
+					// Perform vectorized dot product (replace with intrinsic function or custom implementation)
+					sum += dot(a_vec, b_vec);
 
-					c[index] = sum;
+					// Update starting indices for the next tile
+					start_row += sizeof(float4);
+				  }
+
+				  // Store the final result (considering vector type)
+				  store(c_buf, index, sum);
 				});
-			});
 		// Wait for the queue to finish
 		q.wait();
 
