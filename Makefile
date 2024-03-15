@@ -6,7 +6,7 @@ OMP_LDFLAGS =
 OMP_EXE_NAME = block_matrix_mul_omp
 OMP_SOURCES = src/block_matrix_mul_omp.cpp
 EXE_NAME = block_matrix_mul
-SOURCES = block_matrix_mul.cpp
+SOURCES = src/block_matrix_mul.cpp
 
 build:
 	$(CXX) $(OMP_CXXFLAGS) $(EXE_NAME) $(SOURCES) $(OMP_LDFLAGS)
