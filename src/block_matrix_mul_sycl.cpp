@@ -125,7 +125,7 @@ int main() {
         auto end_time = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end_time - start_time);
 
-        cout << "Execution time: " << duration.count() << " milliseconds" << endl;
+        cout << "Execution time: " << duration.count() << " milliseconds" << "\n";
 
 		} catch (sycl::exception const &e) {
 			cout << "An exception is caught while multiplying matrices.\n";
