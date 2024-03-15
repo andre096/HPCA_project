@@ -20,7 +20,8 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]);
 int VerifyResult(float (*c_back)[P]);
 
 int main(void) {
-
+	int Result1;
+	
     MatrixMulBlock(a, b, c);
 	
 	
