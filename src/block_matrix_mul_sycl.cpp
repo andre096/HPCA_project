@@ -1,136 +1,68 @@
-//==============================================================
-// Copyright © 2020 Intel Corporation
-//
-// SPDX-License-Identifier: MIT
-// =============================================================
-
-/**
- * Matrix_mul multiplies two large matrices both the CPU and the offload device,
- * then compares results. If the code executes on both CPU and the offload
- * device, the name of the offload device and a success message are displayed.
- *
- * For comprehensive instructions regarding SYCL Programming, go to
- * https://software.intel.com/en-us/oneapi-programming-guide and search based on
- * relevant terms noted in the comments.
- */
-
-#include <sycl/sycl.hpp>
+#include <CL/sycl.hpp>
 #include <iostream>
-#include <limits>
-#include <chrono>
 
+#define M 1000
+#define N 1000
+#define P 1000
+#define BLOCK_SIZE 10 // Define the block size
 
 using namespace std;
-using namespace sycl;
-using namespace std::chrono;
+using namespace cl::sycl;
 
-// Matrix size constants.
-constexpr int M = 1000;
-constexpr int N = 1000;
-constexpr int P = 1000;
-constexpr int BLOCK_SIZE = 10;
+class MatrixMul;
+
+void MatrixMulBlock(float *a, float *b, float *c) {
+    queue q;
+    buffer<float, 2> bufferA(a, range<2>(M, N));
+    buffer<float, 2> bufferB(b, range<2>(N, P));
+    buffer<float, 2> bufferC(c, range<2>(M, P));
+
+    auto R = range<2>(M, P);
+    q.submit([&](handler &h) {
+        auto accessA = bufferA.get_access<access::mode::read>(h);
+        auto accessB = bufferB.get_access<access::mode::read>(h);
+        auto accessC = bufferC.get_access<access::mode::write>(h);
+
+        h.parallel_for<MatrixMul>(R, [=](id<2> idx) {
+            int i = idx[0];
+            int j = idx[1];
+            float sum = 0.0f;
+            for (int k = 0; k < N; ++k) {
+                sum += accessA[i][k] * accessB[k][j];
+            }
+            accessC[idx] = sum;
+        });
+    });
+
+    q.wait();
+}
 
 int main() {
-  // Initialize the device queue with the default selector. The device queue is
-  // used to enqueue kernels. It encapsulates all states needed for execution.
-  try {
-    queue q(default_selector_v);
+    float a[M][N], b[N][P], c[M][P];
 
-    cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
+    // Fill matrices a and b
+    for (int i = 0; i < M; ++i) {
+        for (int j = 0; j < N; ++j) {
+            a[i][j] = 1.0f;
+        }
+    }
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < P; ++j) {
+            b[i][j] = i + 1.0f;
+        }
+    }
 
-    // Create 2D buffers for matrices, buffer c is bound with host memory c_back
+    double itime, ftime, exec_time;
+    itime = omp_get_wtime();
 
-    buffer<float, 2> a_buf(range(M, N));
-    buffer<float, 2> b_buf(range(N, P));
-    buffer<float, 2> c_buf(range(M, P));
+    // Perform matrix multiplication
+    MatrixMulBlock(reinterpret_cast<float *>(a),
+                   reinterpret_cast<float *>(b),
+                   reinterpret_cast<float *>(c));
 
-    cout << "Problem size: c(" << M << "," << P << ") = a(" << M << "," << N
-         << ") * b(" << N << "," << P << ")\n";
+    ftime = omp_get_wtime();
+    exec_time = ftime - itime;
+    printf("Time taken for parallelized block multiplication is %f \n", exec_time);
 
-    // Using three command groups to illustrate execution order. The use of
-    // first two command groups for initializing matrices is not the most
-    // efficient way. It just demonstrates the implicit multiple command group
-    // execution ordering.
-
-    // Submit command group to queue to initialize matrix a
-    q.submit([&](auto &h) {
-      // Get write only access to the buffer on a device.
-      accessor a(a_buf, h, write_only);
-
-      // Execute kernel.
-      h.parallel_for(range(M, N), [=](auto index) {
-        // Each element of matrix a is 1.
-        a[index] = 1.0f;
-      });
-    });
-
-    // Submit command group to queue to initialize matrix b
-    q.submit([&](auto &h) {
-      // Get write only access to the buffer on a device
-      accessor b(b_buf, h, write_only);
-
-      // Execute kernel.
-      h.parallel_for(range(N, P), [=](auto index) {
-        // Each column of b is the sequence 1,2,...,N
-        b[index] = index[0] + 1.0f;
-      });
-    });
-	
-	    // Submit command group to queue to initialize matrix c
-    q.submit([&](auto &h) {
-      // Get write only access to the buffer on a device
-      accessor c(c_buf, h, write_only);
-
-      // Execute kernel.
-      h.parallel_for(range(M, P), [=](auto index) {
-        // Each column of c is the sequence 1,2,...,N
-        c[index] = index[0] + 0.0f;
-      });
-    });
-	// Measure the execution time
-        auto start_time = high_resolution_clock::now();
-
-	// Submit command group to queue to perform block matrix multiplication: c = a * b
-			q.submit([&](auto &h) {
-				accessor a(a_buf, h, read_only);
-				accessor b(b_buf, h, read_only);
-				accessor c(c_buf, h, write_only);
-
-				h.parallel_for(range(M, P), [=](auto index) {
-					size_t row = index[0];
-					size_t col = index[1];
-
-					float sum = 0.0f;
-
-					// Calculate the starting indices of the current block
-					size_t start_row = row - row % BLOCK_SIZE;
-					size_t start_col = col - col % BLOCK_SIZE;
-
-					// Perform block matrix multiplication
-					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-						for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
-							for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
-								sum += a[{i, k + jj}] * b[{k + ii, j}];
-							}
-						}
-					}
-
-					c[index] = sum;
-				});
-			});
-		// Wait for the queue to finish
-		q.wait();
-
-        // Measure the execution time
-        auto end_time = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(end_time - start_time);
-
-        cout << "Execution time: " << duration.count() << " milliseconds" << "\n";
-
-		} catch (sycl::exception const &e) {
-			cout << "An exception is caught while multiplying matrices.\n";
-			terminate();
-		}
-
-return 0;
+    return 0;
 }
