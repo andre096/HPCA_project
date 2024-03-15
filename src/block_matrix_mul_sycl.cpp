@@ -18,7 +18,7 @@ constexpr int BLOCK_SIZE = 10;
 
 int main() {
     try {
-        queue q(default_selector{});
+        queue q(default_selector_v);
 
         cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
 
