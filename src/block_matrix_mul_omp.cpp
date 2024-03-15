@@ -48,7 +48,7 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
     }
 	
     // Perform block matrix multiplication
-	#pragma omp parallel for private(i, j, k, ii, jj, kk) shared(a, b, c)
+	#pragma omp parallel for collapse(3)
     for (ii = 0; ii < M; ii += BLOCK_SIZE) {
         for (jj = 0; jj < P; jj += BLOCK_SIZE) {
             for (kk = 0; kk < N; kk += BLOCK_SIZE) {
