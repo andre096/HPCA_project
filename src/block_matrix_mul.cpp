@@ -18,19 +18,7 @@ int main(void) {
     float b[N][P];
     float c[M][P];
 
-    // Initialize matrices a and b (as before)
-    // ...
-
     MatrixMulBlock(a, b, c);
-
-    // Print the result matrix c
-    // printf("Result Matrix c:\n");
-    // for (int i = 0; i < M; i++) {
-    //     for (int j = 0; j < P; j++) {
-    //         printf("%f ", c[i][j]);
-    //     }
-    //     printf("\n");
-    // }
 
     return 0;
 }
@@ -53,12 +41,6 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
 	double itime, ftime, exec_time;
 	itime = omp_get_wtime();
 
-    for (i = 0; i < M; i++) {
-        for (j = 0; j < P; j++) {
-            c[i][j] = 0.0f; // Initialize each element of c to zero
-        }
-    }
-	
     // Perform block matrix multiplication
     for (ii = 0; ii < M; ii += BLOCK_SIZE) {
         for (jj = 0; jj < P; jj += BLOCK_SIZE) {
@@ -76,5 +58,5 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
     }
 	ftime = omp_get_wtime();
 	exec_time = ftime-itime;
-	printf("\n Time taken is %f", exec_time);
+	printf("Time taken for unparallelized block multiplication is %f \n", exec_time);
 }

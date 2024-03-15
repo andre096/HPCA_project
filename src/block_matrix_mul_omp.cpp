@@ -18,20 +18,7 @@ int main(void) {
     float b[N][P];
     float c[M][P];
 
-    // Initialize matrices a and b (as before)
-    // ...
-
     MatrixMulBlock(a, b, c);
-
-
-    // Print the result matrix c
-    // printf("Result Matrix c:\n");
-    // for (int i = 0; i < M; i++) {
-    //     for (int j = 0; j < P; j++) {
-    //         printf("%f ", c[i][j]);
-    //     }
-    //     printf("\n");
-    // }
 
     return 0;
 }
@@ -53,12 +40,6 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
 	
 	double itime, ftime, exec_time;
 	itime = omp_get_wtime();
-
-    for (i = 0; i < M; i++) {
-        for (j = 0; j < P; j++) {
-            c[i][j] = 0.0f; // Initialize each element of c to zero
-        }
-    }
 	
     // Perform block matrix multiplication
 	#pragma omp parallel for private(i, j, k, ii, jj, kk) shared(a, b, c)
@@ -78,5 +59,95 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
     }
 	ftime = omp_get_wtime();
 	exec_time = ftime-itime;
-	printf("\n Time taken is %f", exec_time);
+	printf("Time taken for parallelized block multiplication is %f \n", exec_time);
 }
+
+
+bool ValueSame(float a, float b) {
+	return fabs(a - b) < numeric_limits<float>::epsilon();
+}
+
+
+int verifyResult(float (*c_back)[P]){
+	// Check that the results are correct by comparing with host computing.
+	int i, j, k;
+
+	float(*a_host)[N] = new float[M][N];
+	float(*b_host)[P] = new float[N][P];
+	float(*c_host)[P] = new float[M][P];
+	
+	
+	// Each element of matrix a is 1.
+    for (i = 0; i < M; i++)
+		for (j = 0; j < N; j++) a_host[i][j] = 1.0f;
+
+	// Each column of b_host is the sequence 1,2,...,N
+	for (i = 0; i < N; i++)
+		for (j = 0; j < P; j++) b_host[i][j] = i + 1.0f;
+
+	// c_host is initialized to zero.
+	for (i = 0; i < M; i++)
+		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
+	
+	for (ii = 0; ii < M; ii += BLOCK_SIZE) {
+        for (jj = 0; jj < P; jj += BLOCK_SIZE) {
+            for (kk = 0; kk < N; kk += BLOCK_SIZE) {
+                // Multiply block of A and B
+                for (i = ii; i < ii + BLOCK_SIZE && i < M; i++) {
+                    for (j = jj; j < jj + BLOCK_SIZE && j < P; j++) {
+                        for (k = kk; k < kk + BLOCK_SIZE && k < N; k++) {
+                            c_host[i][j] += a_host[i][k] * b_host[k][j];
+                        }
+                    }
+                }
+            }
+        }
+    }
+	
+	bool mismatch_found = false;
+	
+	int print_count = 0;
+
+	  for (i = 0; i < M; i++) {
+		for (j = 0; j < P; j++) {
+		  if (!ValueSame(c_back[i][j], c_host[i][j])) {
+			cout << "Fail - The result is incorrect for element: [" << i << ", "
+				 << j << "], expected: " << c_host[i][j]
+				 << ", but found: " << c_back[i][j] << "\n";
+			mismatch_found = true;
+			print_count++;
+			if (print_count == 5) break;
+		  }
+		}
+
+		if (print_count == 5) break;
+	  }
+	  delete[] a_host;
+	  delete[] b_host;
+	  delete[] c_host;
+
+	  if (!mismatch_found) {
+		cout << "Success - The results are correct!\n";
+		return 0;
+	  } else {
+		cout << "Fail - The results mismatch!\n";
+		return -1;
+	  }
+		
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
