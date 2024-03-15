@@ -37,13 +37,16 @@ int main(void) {
 
 void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
     int i, j, k, ii, jj, kk;
+	
+	double itime, ftime, exec_time;
+	itime = omp_get_wtime();
 
     for (i = 0; i < M; i++) {
         for (j = 0; j < P; j++) {
             c[i][j] = 0.0f; // Initialize each element of c to zero
         }
     }
-
+	
     // Perform block matrix multiplication
 	#pragma omp parallel for private(i, j, k, ii, jj, kk) shared(a, b, c)
     for (ii = 0; ii < M; ii += BLOCK_SIZE) {
@@ -60,4 +63,7 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
             }
         }
     }
+	ftime = omp_get_wtime();
+	exec_time = ftime-itime;
+	printf("\n Time taken is %f", exec_time);
 }
