@@ -55,7 +55,7 @@ int main() {
                 size_t row = index[0];
                 size_t col = index[1];
 
-                float sum(0.0f, 0.0f, 0.0f, 0.0f); // Use float4 for vectorized operations
+                float4 sum(0.0f, 0.0f, 0.0f, 0.0f); // Use float4 for vectorized operations
 
                 // Calculate the starting indices of the current block
                 size_t start_row = row - row % BLOCK_SIZE;
