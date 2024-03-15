@@ -1,6 +1,8 @@
-#include <iostream>
-#include <vector>
+#include <float.h>
+#include <math.h>
 #include <omp.h>
+#include <iostream>
+#include <limits>
 
 #define M 100
 #define N 100
@@ -76,7 +78,7 @@ bool ValueSame(float a, float b) {
 
 int verifyResult(float (*c_back)[P]){
 	// Check that the results are correct by comparing with host computing.
-	int i, j, k;
+	int i, j, k, ii, jj, kk;
 
 	float(*a_host)[N] = new float[M][N];
 	float(*b_host)[P] = new float[N][P];
