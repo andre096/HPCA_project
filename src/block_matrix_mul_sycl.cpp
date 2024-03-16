@@ -151,12 +151,12 @@ void VerifyResult(float (*c_back)[P]){
 			for (size_t k = 0; k < N; k += BLOCK_SIZE) {
 				for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
 					for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
-						sum += a[{i, k + jj}] * b[{k + ii, j}];
+						sum += a_host[{i, k + jj}] * b_host[{k + ii, j}];
 					}
 				}
 			}
 
-			c[{row, col}] = sum;
+			c_host[{row, col}] = sum;
 		}
 	}
 	auto end_time = high_resolution_clock::now();
