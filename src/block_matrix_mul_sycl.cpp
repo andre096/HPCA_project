@@ -142,9 +142,9 @@ void VerifyResult(float (*c_back)[P]){
     for (int row = 0; row < M; row += BLOCK_SIZE) {
         for (int col = 0; col < P; col += BLOCK_SIZE) {
             for (int k = 0; k < N; k += BLOCK_SIZE) {
-                for (int i = row; i < min(row + BLOCK_SIZE, M); ++i) {
-                    for (int j = col; j < min(col + BLOCK_SIZE, P); ++j) {
-                        for (int kk = k; kk < min(k + BLOCK_SIZE, N); ++kk) {
+                for (int i = row; i < std::min(row + BLOCK_SIZE, M); ++i) {
+                    for (int j = col; j < std::min(col + BLOCK_SIZE, P); ++j) {
+                        for (int kk = k; kk < std::min(k + BLOCK_SIZE, N); ++kk) {
                             c_host[i][j] += a_host[i][kk] * b_host[kk][j];
                         }
                     }
