@@ -18,15 +18,13 @@ constexpr int BLOCK_SIZE = 10;
 void VerifyResult(float (*c_back)[P]);
 
 int main() {
-  try {
-	  
-	  
 	float(*c_back)[P] = new float[M][P];
 
 	  // Intialize c_back
 	  for (int i = 0; i < M; i++)
 		for (int j = 0; j < P; j++) c_back[i][j] = 0.0f;
-	  
+  try {
+	    
     queue q(default_selector_v);
 
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
