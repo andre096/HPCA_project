@@ -139,7 +139,7 @@ void VerifyResult(float (*c_back)[P]){
 	
 	auto start_time = high_resolution_clock::now();
 	
-	for (size_t row = 0; row < P; ++row) {
+	for (size_t row = 0; row < M; ++row) {
 		for (size_t col = 0; col < P; ++col) {
 			float sum = 0.0f;
 
