@@ -139,21 +139,26 @@ void VerifyResult(float (*c_back)[P]){
 	
 	auto start_time = high_resolution_clock::now();
 	
-	for (ii = 0; ii < M; ii += BLOCK_SIZE) {
-        for (jj = 0; jj < P; jj += BLOCK_SIZE) {
-            for (kk = 0; kk < N; kk += BLOCK_SIZE) {
-                // Multiply block of A and B
-                for (i = ii; i < ii + BLOCK_SIZE && i < M; i++) {
-                    for (j = jj; j < jj + BLOCK_SIZE && j < P; j++) {
-                        for (k = kk; k < kk + BLOCK_SIZE && k < N; k++) {
-                            c_host[i][j] += a_host[i][k] * b_host[k][j];
-                        }
-                    }
-                }
-            }
-        }
-    }
-	
+	for (size_t row = 0; row < P; ++row) {
+		for (size_t col = 0; col < P; ++col) {
+			float sum = 0.0f;
+
+			// Calculate the starting indices of the current block
+			size_t start_row = row - row % BLOCK_SIZE;
+			size_t start_col = col - col % BLOCK_SIZE;
+
+			// Perform block matrix multiplication
+			for (size_t k = 0; k < N; k += BLOCK_SIZE) {
+				for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
+					for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
+						sum += a[{i, k + jj}] * b[{k + ii, j}];
+					}
+				}
+			}
+
+			c[{row, col}] = sum;
+		}
+	}
 	auto end_time = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(end_time - start_time);
 
