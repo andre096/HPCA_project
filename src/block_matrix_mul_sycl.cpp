@@ -54,13 +54,13 @@ int main() {
       });
     });
 	
-    q.submit([&](auto &h) {
-      accessor c(c_buf, h, write_only);
+    //q.submit([&](auto &h) {
+    //  accessor c(c_buf, h, write_only);
 
-      h.parallel_for(range(M, P), [=](auto index) {
-        c[index] = index[0] + 0.0f;
-      });
-    });
+      //h.parallel_for(range(M, P), [=](auto index) {
+        //c[index] = index[0] + 0.0f;
+      //});
+    //});
         auto start_time = high_resolution_clock::now();
 
 			q.submit([&](auto &h) {
