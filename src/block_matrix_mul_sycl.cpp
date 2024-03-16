@@ -14,8 +14,19 @@ constexpr int N = 1000;
 constexpr int P = 1000;
 constexpr int BLOCK_SIZE = 10;
 
+
+void VerifyResult(float (*c_back)[P]);
+
 int main() {
   try {
+	  
+	  
+	float(*c_back)[P] = new float[M][P];
+
+	  // Intialize c_back
+	  for (int i = 0; i < M; i++)
+		for (int j = 0; j < P; j++) c_back[i][j] = 0.0f;
+	  
     queue q(default_selector_v);
 
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
@@ -23,7 +34,7 @@ int main() {
 
     buffer<float, 2> a_buf(range(M, N));
     buffer<float, 2> b_buf(range(N, P));
-    buffer<float, 2> c_buf(range(M, P));
+    buffer c_buf<reinterpret_cast<float *>(c_back), range(M, P));
 
     cout << "Problem size: c(" << M << "," << P << ") = a(" << M << "," << N
          << ") * b(" << N << "," << P << ")\n";
@@ -86,12 +97,96 @@ int main() {
         auto end_time = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end_time - start_time);
 
-        cout << "Execution time: " << duration.count() << " milliseconds" << "\n";
+        cout << "Execution time parallelized: " << duration.count() << " milliseconds" << "\n";
+
+		
+
 
 		} catch (sycl::exception const &e) {
 			cout << "An exception is caught while multiplying matrices.\n";
 			terminate();
 		}
+	  cout << "Result of matrix multiplication using SYCL: ";
+	  VerifyResult(c_back);
+	  delete[] c_back;
 
 return 0;
+}
+
+
+bool ValueSame(float a, float b) {
+  return fabs(a - b) < numeric_limits<float>::epsilon();
+}
+
+void VerifyResult(float (*c_back)[P]){
+	// Check that the results are correct by comparing with host computing.
+	int i, j, k, ii, jj, kk;
+
+	float(*a_host)[N] = new float[M][N];
+	float(*b_host)[P] = new float[N][P];
+	float(*c_host)[P] = new float[M][P];
+	
+	
+	// Each element of matrix a is 1.
+    for (i = 0; i < M; i++)
+		for (j = 0; j < N; j++) a_host[i][j] = 1.0f;
+
+	// Each column of b_host is the sequence 1,2,...,N
+	for (i = 0; i < N; i++)
+		for (j = 0; j < P; j++) b_host[i][j] = i + 1.0f;
+
+	// c_host is initialized to zero.
+	for (i = 0; i < M; i++)
+		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
+	
+	auto start_time = high_resolution_clock::now();
+	
+	for (ii = 0; ii < M; ii += BLOCK_SIZE) {
+        for (jj = 0; jj < P; jj += BLOCK_SIZE) {
+            for (kk = 0; kk < N; kk += BLOCK_SIZE) {
+                // Multiply block of A and B
+                for (i = ii; i < ii + BLOCK_SIZE && i < M; i++) {
+                    for (j = jj; j < jj + BLOCK_SIZE && j < P; j++) {
+                        for (k = kk; k < kk + BLOCK_SIZE && k < N; k++) {
+                            c_host[i][j] += a_host[i][k] * b_host[k][j];
+                        }
+                    }
+                }
+            }
+        }
+    }
+	
+	auto end_time = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end_time - start_time);
+
+    cout << "Execution time unparallelized: " << duration.count() << " milliseconds" << "\n";
+	
+	bool mismatch_found = false;
+	
+	int print_count = 0;
+
+	  for (i = 0; i < M; i++) {
+		for (j = 0; j < P; j++) {
+		  if (!ValueSame(c_back[i][j], c_host[i][j])) {
+			cout << "Fail - The result is incorrect for element: [" << i << ", "
+				 << j << "], expected: " << c_host[i][j]
+				 << ", but found: " << c_back[i][j] << "\n";
+			mismatch_found = true;
+			print_count++;
+			if (print_count == 5) break;
+		  }
+		}
+
+		if (print_count == 5) break;
+	  }
+	  delete[] a_host;
+	  delete[] b_host;
+	  delete[] c_host;
+
+	  if (!mismatch_found) {
+		cout << "Success - The results are correct!\n";
+	  } else {
+		cout << "Fail - The results mismatch!\n";
+	  }
+		
 }
