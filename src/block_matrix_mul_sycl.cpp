@@ -118,6 +118,7 @@ bool ValueSame(float a, float b) {
 
 void VerifyResult(float (*c_back)[P]){
 	// Check that the results are correct by comparing with host computing.
+	int i, j, k, ii, jj, kk;
 
 	float(*a_host)[N] = new float[M][N];
 	float(*b_host)[P] = new float[N][P];
@@ -125,39 +126,32 @@ void VerifyResult(float (*c_back)[P]){
 	
 	
 	// Each element of matrix a is 1.
-    for (int i = 0; i < M; i++)
-		for (int j = 0; j < N; j++) a_host[i][j] = 1.0f;
+    for (i = 0; i < M; i++)
+		for (j = 0; j < N; j++) a_host[i][j] = 1.0f;
 
 	// Each column of b_host is the sequence 1,2,...,N
-	for (int i = 0; i < N; i++)
-		for (int j = 0; j < P; j++) b_host[i][j] = i + 1.0f;
+	for (i = 0; i < N; i++)
+		for (j = 0; j < P; j++) b_host[i][j] = i + 1.0f;
 
 	// c_host is initialized to zero.
-	for (int i = 0; i < M; i++)
-		for (int j = 0; j < P; j++) c_host[i][j] = 0.0f;
+	for (i = 0; i < M; i++)
+		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
 	
 	auto start_time = high_resolution_clock::now();
 	
-	for (int row = 0; row < M; ++row) {
-		for (int col = 0; col < P; ++col) {
-			float sum = 0.0f;
-
-			// Calculate the starting indices of the current block
-			int start_row = row - row % BLOCK_SIZE;
-			int start_col = col - col % BLOCK_SIZE;
-
-			// Perform block matrix multiplication
-			for (int k = 0; k < N; k += BLOCK_SIZE) {
-				for (int i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
-					for (int j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
-						sum += a_host[{i, k + jj}] * b_host[{k + ii, j}];
-					}
-				}
-			}
-
-			c_host[{row, col}] = sum;
-		}
-	}
+    for (int row = 0; row < M; row += BLOCK_SIZE) {
+        for (int col = 0; col < P; col += BLOCK_SIZE) {
+            for (int k = 0; k < N; k += BLOCK_SIZE) {
+                for (int i = row; i < min(row + BLOCK_SIZE, M); ++i) {
+                    for (int j = col; j < min(col + BLOCK_SIZE, P); ++j) {
+                        for (int kk = k; kk < min(k + BLOCK_SIZE, N); ++kk) {
+                            c_host[i][j] += a_host[i][kk] * b_host[kk][j];
+                        }
+                    }
+                }
+            }
+        }
+    }
 	auto end_time = high_resolution_clock::now();
     auto duration = duration_cast<milliseconds>(end_time - start_time);
 
