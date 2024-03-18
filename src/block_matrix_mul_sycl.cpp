@@ -120,7 +120,7 @@ void printMatrix(float (*m)[M]){
    for(i=0; i<M; i++){
       cout << "\n";
       for(j=0; j<N; j++){
-         cout << m[i][j];
+         cout << m[i][j] << " | " ;
       }
    } 
 }
