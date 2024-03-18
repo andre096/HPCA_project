@@ -95,7 +95,7 @@ int main() {
         //printing a
         cout << "\n Accessor_a: \n"
         for(size_t p=0; p<N; p++){
-          cout << "\n"
+          cout << "\n";
           for(size_t l = 0; l<N; l++){
             cout << a[p][l] <<  " | ";
           }
@@ -103,7 +103,7 @@ int main() {
         //printing b
         cout << "\n Accessor_b: \n"
         for(size_t p=0; p<N; p++){
-          cout << "\n"
+          cout << "\n";
           for(size_t l = 0; l<N; l++){
             cout << b[p][l] <<  " | ";
           }
@@ -111,7 +111,7 @@ int main() {
         //printing c
         cout << "\n Accessor_c: \n"
         for(size_t p=0; p<N; p++){
-          cout << "\n"
+          cout << "\n";
           for(size_t l = 0; l<N; l++){
             cout << c[p][l] <<  " | ";
           }
