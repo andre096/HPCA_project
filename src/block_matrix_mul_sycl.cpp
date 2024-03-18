@@ -93,7 +93,7 @@ int main() {
 
         //printing values of accessors
         //printing a
-        cout << "\n Accessor_a: \n"
+        cout << "\n Accessor_a: \n";
         for(size_t p=0; p<N; p++){
           cout << "\n";
           for(size_t l = 0; l<N; l++){
@@ -101,7 +101,7 @@ int main() {
           }
         }
         //printing b
-        cout << "\n Accessor_b: \n"
+        cout << "\n Accessor_b: \n";
         for(size_t p=0; p<N; p++){
           cout << "\n";
           for(size_t l = 0; l<N; l++){
@@ -109,7 +109,7 @@ int main() {
           }
         }
         //printing c
-        cout << "\n Accessor_c: \n"
+        cout << "\n Accessor_c: \n";
         for(size_t p=0; p<N; p++){
           cout << "\n";
           for(size_t l = 0; l<N; l++){
