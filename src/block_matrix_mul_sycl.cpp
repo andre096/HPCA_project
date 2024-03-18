@@ -9,10 +9,10 @@ using namespace sycl;
 using namespace std::chrono;
 
 // Matrix size constants.
-constexpr int M = 1000;
-constexpr int N = 1000;
-constexpr int P = 1000;
-constexpr int BLOCK_SIZE = 10;
+constexpr int M = 4;
+constexpr int N = 4;
+constexpr int P = 4;
+constexpr int BLOCK_SIZE = 2;
 
 
 void VerifyResult(float (*c_back)[P]);
