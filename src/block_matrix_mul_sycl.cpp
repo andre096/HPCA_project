@@ -16,6 +16,7 @@ constexpr int BLOCK_SIZE = 2;
 
 
 void VerifyResult(float (*c_back)[P]);
+void printMatrix(float (*m)[M]);
 
 int main() {
 	float(*c_back)[P] = new float[M][P];
@@ -111,6 +112,15 @@ int main() {
 return 0;
 }
 
+void printMatrix(float (*m)[M]){
+   int i,j;
+   for(i=0; i<M, i++){
+      cout << "\n";
+      for(j=0; j<N, j++){
+         cout << m[i][j];
+      }
+   } 
+}
 
 bool ValueSame(float a, float b) {
   return fabs(a - b) < numeric_limits<float>::epsilon();
