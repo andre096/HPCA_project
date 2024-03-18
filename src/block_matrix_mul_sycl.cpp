@@ -25,7 +25,7 @@ int main() {
 	  for (int i = 0; i < M; i++)
 		for (int j = 0; j < P; j++) c_back[i][j] = 0.0f;
   try {
-	    
+
     queue q(default_selector_v);
 
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
@@ -54,7 +54,7 @@ int main() {
         b[index] = index[0] + 1.0f;
       });
     });
-	
+
     //q.submit([&](auto &h) {
     //  accessor c(c_buf, h, write_only);
 
@@ -90,6 +90,32 @@ int main() {
 
 					c[index] = sum;
 				});
+
+        //printing values of accessors
+        //printing a
+        cout << "\n Accessor_a: \n"
+        for(size_t p=0; p<N; p++){
+          cout << "\n"
+          for(size_t l = 0; l<N; l++){
+            cout << a[p][l] <<  " | ";
+          }
+        }
+        //printing b
+        cout << "\n Accessor_b: \n"
+        for(size_t p=0; p<N; p++){
+          cout << "\n"
+          for(size_t l = 0; l<N; l++){
+            cout << b[p][l] <<  " | ";
+          }
+        }
+        //printing c
+        cout << "\n Accessor_c: \n"
+        for(size_t p=0; p<N; p++){
+          cout << "\n"
+          for(size_t l = 0; l<N; l++){
+            cout << c[p][l] <<  " | ";
+          }
+        }
 			});
 		q.wait();
 
@@ -98,7 +124,7 @@ int main() {
 
         cout << "Execution time parallelized: " << duration.count() << " milliseconds" << "\n";
 
-		
+
 
 
 		} catch (sycl::exception const &e) {
@@ -122,7 +148,7 @@ void printMatrix(float (*m)[M]){
       for(j=0; j<N; j++){
          cout << m[i][j] << " | " ;
       }
-   } 
+   }
 }
 
 bool ValueSame(float a, float b) {
@@ -136,8 +162,8 @@ void VerifyResult(float (*c_back)[P]){
 	float(*a_host)[N] = new float[M][N];
 	float(*b_host)[P] = new float[N][P];
 	float(*c_host)[P] = new float[M][P];
-	
-	
+
+
 	// Each element of matrix a is 1.
     for (i = 0; i < M; i++)
 		for (j = 0; j < N; j++) a_host[i][j] = 1.0f;
@@ -149,9 +175,9 @@ void VerifyResult(float (*c_back)[P]){
 	// c_host is initialized to zero.
 	for (i = 0; i < M; i++)
 		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
-	
+
 	auto start_time = high_resolution_clock::now();
-	
+
     for (int row = 0; row < M; row += BLOCK_SIZE) {
         for (int col = 0; col < P; col += BLOCK_SIZE) {
             for (int k = 0; k < N; k += BLOCK_SIZE) {
@@ -174,7 +200,7 @@ void VerifyResult(float (*c_back)[P]){
     printMatrix(c_host);
 
 	bool mismatch_found = false;
-	
+
 	int print_count = 0;
 
 	  for (i = 0; i < M; i++) {
@@ -200,5 +226,5 @@ void VerifyResult(float (*c_back)[P]){
 	  } else {
 		cout << "Fail - The results mismatch!\n";
 	  }
-		
+
 }
