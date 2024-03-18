@@ -106,6 +106,13 @@ int main() {
 			terminate();
 		}
 	  cout << "Result of matrix multiplication using SYCL: ";
+	  cout << "_______________________________\n\n\n A:\n";
+          printMatrix(a);
+          cout << "________________________________\nB:\n";
+          printMatrix(b);
+          cout << "________________________________\nC:\n";
+          printMatrix(c);
+          cout << "________________________________\n__________________________\n";
 	  VerifyResult(c_back);
 	  delete[] c_back;
 
