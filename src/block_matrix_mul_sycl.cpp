@@ -169,7 +169,10 @@ void VerifyResult(float (*c_back)[P]){
     auto duration = duration_cast<milliseconds>(end_time - start_time);
 
     cout << "Execution time unparallelized: " << duration.count() << " milliseconds" << "\n";
-	
+
+    cout << "\n______________________ \n C_host: \n";
+    printMatrix(c_host);
+
 	bool mismatch_found = false;
 	
 	int print_count = 0;
