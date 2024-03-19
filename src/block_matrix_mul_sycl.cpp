@@ -1,5 +1,13 @@
 #include <CL/sycl.hpp>
+#include <sycl/sycl.hpp>
+#include <iostream>
+#include <limits>
+#include <chrono>
 
+
+using namespace std;
+using namespace sycl;
+using namespace std::chrono;
 // Define block size for efficient use of device resources
 const int BLOCK_SIZE = 32; // Adjust based on your hardware
 
@@ -23,7 +31,7 @@ void blocked_matrix_multiply_sycl(sycl::queue& queue, const sycl::buffer<T, 1>& 
     auto c_data = c_buffer.get_access<sycl::access::mode::write>(h);
 
     // Initialize a_data and b_data with 1.0f on the device
-    h.parallel_for<sycl::nd_range>(a_buffer.get_range(), [=](sycl::id idx) {
+    h.parallel_for<sycl::nd_range>(a_buffer.get_range(), [=](sycl::id idx<>) {
       a_data[idx] = T(1.0f);
     });
     h.parallel_for<sycl::nd_range>(b_buffer.get_range(), [=](sycl::id idx) {
@@ -39,7 +47,7 @@ void blocked_matrix_multiply_sycl(sycl::queue& queue, const sycl::buffer<T, 1>& 
 
     // Declare local space for potential optimizations
     // (e.g., tile storage or partial sums)
-    sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::target::local> shared_data(BLOCK_SIZE * BLOCK_SIZE, h);
+    sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::target::local_accessor> shared_data(BLOCK_SIZE * BLOCK_SIZE, h);
 
     // Execute the kernel in parallel using a 3D work-group structure
     h.parallel_for<sycl::nd_range>(work_range, [=](sycl::id idx) {
