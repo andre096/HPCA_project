@@ -9,13 +9,14 @@ using namespace sycl;
 using namespace std::chrono;
 
 // Matrix size constants.
-constexpr int M = 1000;
-constexpr int N = 1000;
-constexpr int P = 1000;
-constexpr int BLOCK_SIZE = 10;
+constexpr int M = 4;
+constexpr int N = 4;
+constexpr int P = 4;
+constexpr int BLOCK_SIZE = 2;
 
 
 void VerifyResult(float (*c_back)[P]);
+void printMatrix(float (*m)[M]);
 
 int main() {
 	float(*c_back)[P] = new float[M][P];
@@ -80,27 +81,43 @@ int main() {
 
 					// Perform block matrix multiplication
 					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-					  for (size_t i = start_row; i < start_row + BLOCK_SIZE; ++i) {
-					    for (size_t j = start_col; j < start_col + BLOCK_SIZE; ++j) {
-					      sum = 0; // Reset sum for each element in C
-					      for (size_t ii = 0; ii < BLOCK_SIZE; ++ii) {
-					        for (size_t jj = 0; jj < BLOCK_SIZE; ++jj) {
-					          sum += a[i + ii][k + jj] * b[k + ii][j + jj];
-					        }
-					      }
-					      c[i - start_row][j - start_col] = sum; // Update corresponding element in C
-					    }
-					  }
+						for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
+							for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
+								sum += a[{i, k + jj}] * b[{k + ii, j}];
+							}
+						}
 					}
 
-          // Print matrix C after all block multiplications
-          for (size_t i = 0; i < BLOCK_SIZE * (N / BLOCK_SIZE); ++i) { // Iterate through all rows of C
-            for (size_t j = 0; j < BLOCK_SIZE * (N / BLOCK_SIZE); ++j) { // Iterate through all columns of C
-              cout << c[i][j] ; // Print each element with a space
-            }
-            cout << "\n"; // Newline after each row
-          }
+					c[index] = sum;
 				});
+
+        //printing values of accessors
+        //printing a
+				/*
+				cout << "\n Accessor_a: \n"
+        for(size_t p=0; p<N; p++){
+          cout << "\n"
+          for(size_t l = 0; l<N; l++){
+            cout << a[p][l] <<  " | ";
+          }
+        }
+        //printing b
+        cout << "\n Accessor_b: \n"
+        for(size_t p=0; p<N; p++){
+          cout << "\n"
+          for(size_t l = 0; l<N; l++){
+            cout << b[p][l] <<  " | ";
+          }
+        }
+        //printing c
+        cout << "\n Accessor_c: \n"
+        for(size_t p=0; p<N; p++){
+          cout << "\n"
+          for(size_t l = 0; l<N; l++){
+            cout << c[p][l] <<  " | ";
+          }
+        }
+				*/
 			});
 		q.wait();
 
@@ -117,12 +134,24 @@ int main() {
 			terminate();
 		}
 	  cout << "Result of matrix multiplication using SYCL: ";
+          cout << "________________________________\nC_back:\n";
+          printMatrix(c_back);
+          cout << "________________________________\n__________________________\n";
 	  //VerifyResult(c_back);
 	  delete[] c_back;
 
 return 0;
 }
 
+void printMatrix(float (*m)[M]){
+   int i,j;
+   for(i=0; i<M; i++){
+      cout << "\n";
+      for(j=0; j<N; j++){
+         cout << m[i][j] << " | " ;
+      }
+   }
+}
 
 bool ValueSame(float a, float b) {
   return fabs(a - b) < numeric_limits<float>::epsilon();
@@ -168,6 +197,9 @@ void VerifyResult(float (*c_back)[P]){
     auto duration = duration_cast<milliseconds>(end_time - start_time);
 
     cout << "Execution time unparallelized: " << duration.count() << " milliseconds" << "\n";
+
+    cout << "\n______________________ \n C_host: \n";
+    printMatrix(c_host);
 
 	bool mismatch_found = false;
 
