@@ -96,9 +96,9 @@ int main() {
           // Print matrix C after all block multiplications
           for (size_t i = 0; i < BLOCK_SIZE * (N / BLOCK_SIZE); ++i) { // Iterate through all rows of C
             for (size_t j = 0; j < BLOCK_SIZE * (N / BLOCK_SIZE); ++j) { // Iterate through all columns of C
-              printf("%d ", C[i][j]); // Print each element with a space
+              cout << c[i][j] ; // Print each element with a space
             }
-            printf("\n"); // Newline after each row
+            cout << "\n"; // Newline after each row
           }
 				});
 			});
