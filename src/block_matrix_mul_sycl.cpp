@@ -79,16 +79,20 @@ int main() {
 					size_t start_row = row - row % BLOCK_SIZE;
 					size_t start_col = col - col % BLOCK_SIZE;
 
-					// Perform block matrix multiplication
+          // Perform block matrix multiplication
 					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-						for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
-							for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
-								sum += a[{i, k + jj}] * b[{k + ii, j}];
-							}
-						}
+					  for (size_t i = start_row; i < start_row + BLOCK_SIZE; ++i) {
+					    for (size_t j = start_col; j < start_col + BLOCK_SIZE; ++j) {
+					      sum = 0; // Reset sum for each element in C
+					      for (size_t ii = 0; ii < BLOCK_SIZE; ++ii) {
+					        for (size_t jj = 0; jj < BLOCK_SIZE; ++jj) {
+					          sum += a[i + ii][k + jj] * b[k + ii][j + jj];
+					        }
+					      }
+					      c[i - start_row][j - start_col] = sum; // Update corresponding element in C
+					    }
+					  }
 					}
-
-					c[index] = sum;
 				});
 
         //printing values of accessors
