@@ -8,88 +8,98 @@
 using namespace std;
 using namespace sycl;
 using namespace std::chrono;
-// Define block size for efficient use of device resources
+
+// Matrix size constants.
+constexpr int M = 4;
+constexpr int N = 4;
+constexpr int P = 4;
+
 const int BLOCK_SIZE = 32; // Adjust based on your hardware
+const int TILE_SIZE = 4;  // Adjust based on cache size and blocking strategy
 
 template <typename T>
 void blocked_matrix_multiply_sycl(sycl::queue& queue, const sycl::buffer<T, 1>& a_buffer,
                                  const sycl::buffer<T, 1>& b_buffer, sycl::buffer<T, 1>& c_buffer,
                                  int M, int N, int P) {
-  // Calculate grid dimensions for efficient work distribution
-  int grid_size_M = (M + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  int grid_size_N = (N + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  int grid_size_P = (P + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-  // Define work range for parallel execution
-  sycl::range work_range(grid_size_M, grid_size_N, grid_size_P);
+  // ... (rest of the code for grid dimensions and work range)
 
   // Submit the kernel for execution on the SYCL device
   queue.submit([&](sycl::handler& h) {
     // Access buffers on the device for efficient data movement
-    auto a_data = a_buffer.get_access<sycl::access::mode::read>(h);
-    auto b_data = b_buffer.get_access<sycl::access::mode::read>(h);
-    auto c_data = c_buffer.get_access<sycl::access::mode::write>(h);
+    auto a_data = a_buffer.get_access<sycl::access::mode::read_only>(h);
+    auto b_data = b_buffer.get_access<sycl::access::mode::read_only>(h);
+    auto c_data = c_buffer.get_access<sycl::access::mode::write_only>(h);
 
-    // Initialize a_data and b_data with 1.0f on the device
-    h.parallel_for<sycl::nd_range>(a_buffer.get_range(), [=](sycl::id idx<>) {
-      a_data[idx] = T(1.0f);
-    });
-    h.parallel_for<sycl::nd_range>(b_buffer.get_range(), [=](sycl::id idx) {
-      b_data[idx] = T(1.0f);
-    });
-
-    // Initialize c_data with 0.0f on the device
-    h.parallel_for<sycl::nd_range>(c_buffer.get_range(), [=](sycl::id idx) {
-      c_data[idx] = T(0.0f);
-    });
-
-
-
-    // Declare local space for potential optimizations
-    // (e.g., tile storage or partial sums)
-    sycl::accessor<T, 1, sycl::access::mode::read_write, sycl::target::local_accessor> shared_data(BLOCK_SIZE * BLOCK_SIZE, h);
-
-    // Execute the kernel in parallel using a 3D work-group structure
-    h.parallel_for<sycl::nd_range>(work_range, [=](sycl::id idx) {
-      int i = idx[0] * BLOCK_SIZE;
-      int j = idx[2] * BLOCK_SIZE;
-
-      // Calculate block bounds within the global matrix dimensions
-      int i_limit = std::min(i + BLOCK_SIZE, M);
-      int j_limit = std::min(j + BLOCK_SIZE, P);
+    // Execute the blocked matrix multiplication kernel (improved)
+    h.parallel_for<sycl::nd_range>(range(M / TILE_SIZE, N / TILE_SIZE, P / TILE_SIZE), [=](sycl::id idx) {
+      int i_block = idx[0] * TILE_SIZE;
+      int j_block = idx[2] * TILE_SIZE;
 
       for (int k = 0; k < N; k += BLOCK_SIZE) {
-        int k_limit = std::min(k + BLOCK_SIZE, N);
+        for (int i_tile = 0; i_tile < TILE_SIZE; ++i_tile) {
+          int i = i_block + i_tile;
+          if (i >= M) continue;  // Skip out-of-bounds elements
 
-        // Potentially use local space for optimizations within blocks
-        T sum = 0; // Initialize partial sum for potential reduction
-        for (int kk = k; kk < k_limit; ++kk) {
-          sum += a_data[i * N + kk] * b_data[kk * P + j];
-        }
+          for (int j_tile = 0; j_tile < TILE_SIZE; ++j_tile) {
+            int j = j_block + j_tile;
+            if (j >= P) continue;  // Skip out-of-bounds elements
 
-        // Local reduction (optional for certain SYCL implementations)
-        // ... (code for reduction within work-group)
-
-        // Write partial or final result to global memory
-        for (int ii = i; ii < i_limit; ++ii) {
-          for (int jj = j; jj < j_limit; ++jj) {
-            c_data[ii * P + jj] += sum;
+            float sum = 0.0f;
+            for (int kk = k; kk < k + BLOCK_SIZE; ++kk) {
+              sum += a_data[i * N + kk] * b_data[kk * P + j];
+            }
+            c_data[i * P + j] = sum;
           }
         }
       }
     });
-
-    // Copy c_data back to host memory for verification
-    std::vector<T> c_host(M * P);  // Allocate host memory to hold results
-    h.copy(c_data, c_host.data());  // Copy device data to host vector
-
-    // Print c_data on the host (outside the SYCL kernel)
-    h.sync();  // Wait for the copy to finish before printing
-    for (int i = 0; i < M; ++i) {
-      for (int j = 0; j < P; ++j) {
-        std::cout << c_host[i * P + j] << " ";  // Print each element
-      }
-      std::cout << std::endl;
-    }
   });
+}
+
+int main() {
+  // ... (SYCL queue creation, etc.)
+  sycl::queue q(sycl::default_selector_v);
+
+  // Allocate host memory for input matrices (optional)
+  std::vector<float> a_data(M * N);
+  std::vector<float> b_data(N * P);
+
+  // Initialize input matrices (optional)
+  //fill a_data
+  std::fill(a_data.begin(), a_data.end(), 1.0f);
+  //fill b_data
+  for (int i = 0; i < N; ++i) {
+  for (int j = 0; j < P; ++j) {
+    int index = i * P + j;
+    b_data[index] = i + 1.0f;  // Values start from 1.0f for each row
+  }
+}
+
+  // Allocate device memory for result (optional)
+  sycl::buffer<float, 1> c_buffer(range(M, P));
+
+  // Create buffers on the device
+  sycl::buffer<float, 2> a_buf(range(M, N), a_data.data());
+  sycl::buffer<float, 2> b_buf(range(N, P), b_data.data());
+
+  // Call blocked matrix multiplication
+  blocked_matrix_multiply_sycl(q, a_buf, b_buf, c_buffer, M, N, P);
+
+  // Wait for SYCL execution (optional)
+  q.wait();
+
+   Access results (optional)
+   If using host memory for c_data:
+   std::cout << "Result matrix: " << std::endl;
+   for (int i = 0; i < M; ++i) {
+     for (int j = 0; j < P; ++j) {
+       std::cout << c_data[i * P + j] << " ";
+    }
+     std::cout << std::endl;
+   }
+
+  // If using device memory for c_data:
+  // ... (copy data back to host and then access it)
+
+  return 0;
 }
