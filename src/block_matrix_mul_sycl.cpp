@@ -55,14 +55,7 @@ int main() {
       });
     });
 
-    //q.submit([&](auto &h) {
-    //  accessor c(c_buf, h, write_only);
-
-      //h.parallel_for(range(M, P), [=](auto index) {
-        //c[index] = index[0] + 0.0f;
-      //});
-    //});
-        auto start_time = high_resolution_clock::now();
+      auto start_time = high_resolution_clock::now();
 
 			q.submit([&](auto &h) {
 				accessor a(a_buf, h, read_only);
@@ -79,17 +72,15 @@ int main() {
 					size_t start_row = row - row % BLOCK_SIZE;
 					size_t start_col = col - col % BLOCK_SIZE;
 
-          for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-            for (size_t i = start_row; i < std::min(start_row + BLOCK_SIZE, N); ++i) {
-              for (size_t j = start_col; j < std::min(start_col + BLOCK_SIZE, N); ++j) {
-                for (size_t ii = 0; ii < std::min(BLOCK_SIZE, N - k); ++ii) {
-                  for (size_t jj = 0; jj < std::min(BLOCK_SIZE, N - i); ++jj) {
-                    c[i * N + j] += a[i * N + k + jj] * b[(k + ii) * N + j];
-                  }
-                }
-              }
-            }
-          }
+          // Perform block matrix multiplication
+					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
+						for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
+							for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
+								sum += a[{i, k + ii}] * b[{k + jj, j}];
+							}
+						}
+					}
+					c[index] = sum;
 				});
 
         //printing values of accessors
