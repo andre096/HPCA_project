@@ -1,4 +1,3 @@
-#include <CL/sycl.hpp>
 #include <sycl/sycl.hpp>
 #include <iostream>
 #include <limits>
@@ -10,96 +9,186 @@ using namespace sycl;
 using namespace std::chrono;
 
 // Matrix size constants.
-constexpr int M = 4;
-constexpr int N = 4;
-constexpr int P = 4;
+constexpr int M = 1000;
+constexpr int N = 1000;
+constexpr int P = 1000;
+constexpr int BLOCK_SIZE = 10;
 
-const int BLOCK_SIZE = 32; // Adjust based on your hardware
-const int TILE_SIZE = 4;  // Adjust based on cache size and blocking strategy
 
-template <typename T>
-void blocked_matrix_multiply_sycl(sycl::queue& queue, const sycl::buffer<T, 1>& a_buffer,
-                                 const sycl::buffer<T, 1>& b_buffer, sycl::buffer<T, 1>& c_buffer,
-                                 int M, int N, int P) {
-  // ... (rest of the code for grid dimensions and work range)
-
-  // Submit the kernel for execution on the SYCL device
-  queue.submit([&](sycl::handler& h) {
-    // Access buffers on the device for efficient data movement
-    auto a_data = a_buffer.get_access<sycl::access::mode::read_only>(h);
-    auto b_data = b_buffer.get_access<sycl::access::mode::read_only>(h);
-    auto c_data = c_buffer.get_access<sycl::access::mode::write_only>(h);
-
-    // Execute the blocked matrix multiplication kernel (improved)
-    h.parallel_for<sycl::nd_range>(range(M / TILE_SIZE, N / TILE_SIZE, P / TILE_SIZE), [=](sycl::id idx) {
-      int i_block = idx[0] * TILE_SIZE;
-      int j_block = idx[2] * TILE_SIZE;
-
-      for (int k = 0; k < N; k += BLOCK_SIZE) {
-        for (int i_tile = 0; i_tile < TILE_SIZE; ++i_tile) {
-          int i = i_block + i_tile;
-          if (i >= M) continue;  // Skip out-of-bounds elements
-
-          for (int j_tile = 0; j_tile < TILE_SIZE; ++j_tile) {
-            int j = j_block + j_tile;
-            if (j >= P) continue;  // Skip out-of-bounds elements
-
-            float sum = 0.0f;
-            for (int kk = k; kk < k + BLOCK_SIZE; ++kk) {
-              sum += a_data[i * N + kk] * b_data[kk * P + j];
-            }
-            c_data[i * P + j] = sum;
-          }
-        }
-      }
-    });
-  });
-}
+void VerifyResult(float (*c_back)[P]);
 
 int main() {
-  // ... (SYCL queue creation, etc.)
-  sycl::queue q(sycl::default_selector_v);
+	float(*c_back)[P] = new float[M][P];
 
-  // Allocate host memory for input matrices (optional)
-  std::vector<float> a_data(M * N);
-  std::vector<float> b_data(N * P);
+	  // Intialize c_back
+	  for (int i = 0; i < M; i++)
+		for (int j = 0; j < P; j++) c_back[i][j] = 0.0f;
+  try {
 
-  // Initialize input matrices (optional)
-  //fill a_data
-  std::fill(a_data.begin(), a_data.end(), 1.0f);
-  //fill b_data
-  for (int i = 0; i < N; ++i) {
-  for (int j = 0; j < P; ++j) {
-    int index = i * P + j;
-    b_data[index] = i + 1.0f;  // Values start from 1.0f for each row
-  }
+    queue q(default_selector_v);
+
+    cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
+
+
+    buffer<float, 2> a_buf(range(M, N));
+    buffer<float, 2> b_buf(range(N, P));
+    buffer c_buf(reinterpret_cast<float *>(c_back), range(M, P));
+
+    cout << "Problem size: c(" << M << "," << P << ") = a(" << M << "," << N
+         << ") * b(" << N << "," << P << ")\n";
+
+
+    q.submit([&](auto &h) {
+      accessor a(a_buf, h, write_only);
+
+      h.parallel_for(range(M, N), [=](auto index) {
+        a[index] = 1.0f;
+      });
+    });
+
+    q.submit([&](auto &h) {
+      accessor b(b_buf, h, write_only);
+
+      h.parallel_for(range(N, P), [=](auto index) {
+        b[index] = index[0] + 1.0f;
+      });
+    });
+
+    //q.submit([&](auto &h) {
+    //  accessor c(c_buf, h, write_only);
+
+      //h.parallel_for(range(M, P), [=](auto index) {
+        //c[index] = index[0] + 0.0f;
+      //});
+    //});
+        auto start_time = high_resolution_clock::now();
+
+			q.submit([&](auto &h) {
+				accessor a(a_buf, h, read_only);
+				accessor b(b_buf, h, read_only);
+				accessor c(c_buf, h, write_only);
+
+				h.parallel_for(range(M, P), [=](auto index) {
+					size_t row = index[0];
+					size_t col = index[1];
+
+					float sum = 0.0f;
+
+					// Calculate the starting indices of the current block
+					size_t start_row = row - row % BLOCK_SIZE;
+					size_t start_col = col - col % BLOCK_SIZE;
+
+					// Perform block matrix multiplication
+					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
+					  for (size_t i = start_row; i < start_row + BLOCK_SIZE; ++i) {
+					    for (size_t j = start_col; j < start_col + BLOCK_SIZE; ++j) {
+					      sum = 0; // Reset sum for each element in C
+					      for (size_t ii = 0; ii < BLOCK_SIZE; ++ii) {
+					        for (size_t jj = 0; jj < BLOCK_SIZE; ++jj) {
+					          sum += a[i + ii][k + jj] * b[k + ii][j + jj];
+					        }
+					      }
+					      C[i - start_row][j - start_col] = sum; // Update corresponding element in C
+					    }
+					  }
+					}
+
+					c[index] = sum;
+				});
+			});
+		q.wait();
+
+        auto end_time = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(end_time - start_time);
+
+        cout << "Execution time parallelized: " << duration.count() << " milliseconds" << "\n";
+
+
+
+
+		} catch (sycl::exception const &e) {
+			cout << "An exception is caught while multiplying matrices.\n";
+			terminate();
+		}
+	  cout << "Result of matrix multiplication using SYCL: ";
+	  VerifyResult(c_back);
+	  delete[] c_back;
+
+return 0;
 }
 
-  // Allocate device memory for result (optional)
-  sycl::buffer<float, 1> c_buffer(range(M, P));
 
-  // Create buffers on the device
-  sycl::buffer<float, 2> a_buf(range(M, N), a_data.data());
-  sycl::buffer<float, 2> b_buf(range(N, P), b_data.data());
+bool ValueSame(float a, float b) {
+  return fabs(a - b) < numeric_limits<float>::epsilon();
+}
 
-  // Call blocked matrix multiplication
-  blocked_matrix_multiply_sycl(q, a_buf, b_buf, c_buffer, M, N, P);
+void VerifyResult(float (*c_back)[P]){
+	// Check that the results are correct by comparing with host computing.
+	int i, j, k, ii, jj, kk;
 
-  // Wait for SYCL execution (optional)
-  q.wait();
+	float(*a_host)[N] = new float[M][N];
+	float(*b_host)[P] = new float[N][P];
+	float(*c_host)[P] = new float[M][P];
 
-   Access results (optional)
-   If using host memory for c_data:
-   std::cout << "Result matrix: " << std::endl;
-   for (int i = 0; i < M; ++i) {
-     for (int j = 0; j < P; ++j) {
-       std::cout << c_data[i * P + j] << " ";
+
+	// Each element of matrix a is 1.
+    for (i = 0; i < M; i++)
+		for (j = 0; j < N; j++) a_host[i][j] = 1.0f;
+
+	// Each column of b_host is the sequence 1,2,...,N
+	for (i = 0; i < N; i++)
+		for (j = 0; j < P; j++) b_host[i][j] = i + 1.0f;
+
+	// c_host is initialized to zero.
+	for (i = 0; i < M; i++)
+		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
+
+	auto start_time = high_resolution_clock::now();
+
+    for (int row = 0; row < M; row += BLOCK_SIZE) {
+        for (int col = 0; col < P; col += BLOCK_SIZE) {
+            for (int k = 0; k < N; k += BLOCK_SIZE) {
+                for (int i = row; i < std::min(row + BLOCK_SIZE, M); ++i) {
+                    for (int j = col; j < std::min(col + BLOCK_SIZE, P); ++j) {
+                        for (int kk = k; kk < std::min(k + BLOCK_SIZE, N); ++kk) {
+                            c_host[i][j] += a_host[i][kk] * b_host[kk][j];
+                        }
+                    }
+                }
+            }
+        }
     }
-     std::cout << std::endl;
-   }
+	auto end_time = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end_time - start_time);
 
-  // If using device memory for c_data:
-  // ... (copy data back to host and then access it)
+    cout << "Execution time unparallelized: " << duration.count() << " milliseconds" << "\n";
 
-  return 0;
+	bool mismatch_found = false;
+
+	int print_count = 0;
+
+	  for (i = 0; i < M; i++) {
+		for (j = 0; j < P; j++) {
+		  if (!ValueSame(c_back[i][j], c_host[i][j])) {
+			cout << "Fail - The result is incorrect for element: [" << i << ", "
+				 << j << "], expected: " << c_host[i][j]
+				 << ", but found: " << c_back[i][j] << "\n";
+			mismatch_found = true;
+			print_count++;
+			if (print_count == 5) break;
+		  }
+		}
+
+		if (print_count == 5) break;
+	  }
+	  delete[] a_host;
+	  delete[] b_host;
+	  delete[] c_host;
+
+	  if (!mismatch_found) {
+		cout << "Success - The results are correct!\n";
+	  } else {
+		cout << "Fail - The results mismatch!\n";
+	  }
+
 }
