@@ -81,9 +81,9 @@ int main() {
 
 					// Perform block matrix multiplication
 					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-						for(size_t z = row; z < start_col + BLOCK_SIZE; z++){
-							for (size_t i = col; i < start_row + BLOCK_SIZE; ++i) {
-								for (size_t j = k; j < start_col + BLOCK_SIZE; ++j) {
+						for(size_t z = row; z < row  + BLOCK_SIZE; z++){
+							for (size_t i = col; i < col + BLOCK_SIZE; ++i) {
+								for (size_t j = k; j < k + BLOCK_SIZE; ++j) {
 									sum += a[{z, j}] * b[{j, i}];
 								}
 							}
