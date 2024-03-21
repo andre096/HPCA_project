@@ -69,8 +69,8 @@ int main() {
 				accessor c(c_buf, h, write_only);
 
 				h.parallel_for(range(M, P), [=](auto index) {
-					size_t row = index[0];
-					size_t col = index[1];
+					size_t row = index[0]+BLOCK_SIZE;
+					size_t col = index[1]+BLOCK_SIZE;
 					
 					float sum = 0.0f;
 
@@ -78,11 +78,14 @@ int main() {
 					size_t start_row = row - row % BLOCK_SIZE;
 					size_t start_col = col - col % BLOCK_SIZE;
 
+
 					// Perform block matrix multiplication
 					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-						for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
-							for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
-								sum += a[{i, k + jj}] * b[{k + jj, j}];
+						for(size_t z = row; z < start_col + BLOCK_SIZE; z++){
+							for (size_t i = col; i < start_row + BLOCK_SIZE; ++i) {
+								for (size_t j = k; j < start_col + BLOCK_SIZE; ++j) {
+									sum += a[{z, j}] * b[{j, i}];
+								}
 							}
 						}
 					}
