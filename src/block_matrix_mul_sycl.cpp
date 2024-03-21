@@ -9,14 +9,13 @@ using namespace sycl;
 using namespace std::chrono;
 
 // Matrix size constants.
-constexpr int M = 4;
-constexpr int N = 4;
-constexpr int P = 4;
-constexpr int BLOCK_SIZE = 2;
+constexpr int M = 1000;
+constexpr int N = 1000;
+constexpr int P = 1000;
+constexpr int BLOCK_SIZE = 10;
 
 
 void VerifyResult(float (*c_back)[P]);
-void printMatrix(float (*m)[M]);
 
 int main() {
 	float(*c_back)[P] = new float[M][P];
@@ -25,7 +24,7 @@ int main() {
 	  for (int i = 0; i < M; i++)
 		for (int j = 0; j < P; j++) c_back[i][j] = 0.0f;
   try {
-
+	    
     queue q(default_selector_v);
 
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
@@ -54,8 +53,15 @@ int main() {
         b[index] = index[0] + 1.0f;
       });
     });
+	
+    //q.submit([&](auto &h) {
+    //  accessor c(c_buf, h, write_only);
 
-      auto start_time = high_resolution_clock::now();
+      //h.parallel_for(range(M, P), [=](auto index) {
+        //c[index] = index[0] + 0.0f;
+      //});
+    //});
+        auto start_time = high_resolution_clock::now();
 
 			q.submit([&](auto &h) {
 				accessor a(a_buf, h, read_only);
@@ -65,55 +71,24 @@ int main() {
 				h.parallel_for(range(M, P), [=](auto index) {
 					size_t row = index[0];
 					size_t col = index[1];
-
+					
 					float sum = 0.0f;
 
 					// Calculate the starting indices of the current block
 					size_t start_row = row - row % BLOCK_SIZE;
 					size_t start_col = col - col % BLOCK_SIZE;
 
-        for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-          for (size_t i = start_row; i < start_row + BLOCK_SIZE; ++i) {
-            for (size_t j = start_col; j < start_col + BLOCK_SIZE; ++j) {
-              sum = 0.0;  // Initialize sum to zero for each element in C
-              for (size_t ii = 0; ii < BLOCK_SIZE; ++ii) {
-                for (size_t jj = 0; jj < BLOCK_SIZE; ++jj) {
-                  sum += a[i + ii][k + jj] * b[k + ii][j + jj];
-                }
-              }
-              c[index++] = sum;
-            }
-          }
-        }
-				});
+					// Perform block matrix multiplication
+					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
+						for (size_t i = start_row, ii = 0; i < start_row + BLOCK_SIZE; ++i, ++ii) {
+							for (size_t j = start_col, jj = 0; j < start_col + BLOCK_SIZE; ++j, ++jj) {
+								sum += a[{i, k + jj}] * b[{k + jj, j}];
+							}
+						}
+					}
 
-        //printing values of accessors
-        //printing a
-				/*
-				cout << "\n Accessor_a: \n"
-        for(size_t p=0; p<N; p++){
-          cout << "\n"
-          for(size_t l = 0; l<N; l++){
-            cout << a[p][l] <<  " | ";
-          }
-        }
-        //printing b
-        cout << "\n Accessor_b: \n"
-        for(size_t p=0; p<N; p++){
-          cout << "\n"
-          for(size_t l = 0; l<N; l++){
-            cout << b[p][l] <<  " | ";
-          }
-        }
-        //printing c
-        cout << "\n Accessor_c: \n"
-        for(size_t p=0; p<N; p++){
-          cout << "\n"
-          for(size_t l = 0; l<N; l++){
-            cout << c[p][l] <<  " | ";
-          }
-        }
-				*/
+					c[index] = sum;
+				});
 			});
 		q.wait();
 
@@ -122,7 +97,7 @@ int main() {
 
         cout << "Execution time parallelized: " << duration.count() << " milliseconds" << "\n";
 
-
+		
 
 
 		} catch (sycl::exception const &e) {
@@ -130,24 +105,12 @@ int main() {
 			terminate();
 		}
 	  cout << "Result of matrix multiplication using SYCL: ";
-          cout << "________________________________\nC_back:\n";
-          printMatrix(c_back);
-          cout << "________________________________\n__________________________\n";
-	  //VerifyResult(c_back);
+	  VerifyResult(c_back);
 	  delete[] c_back;
 
 return 0;
 }
 
-void printMatrix(float (*m)[M]){
-   int i,j;
-   for(i=0; i<M; i++){
-      cout << "\n";
-      for(j=0; j<N; j++){
-         cout << m[i][j] << " | " ;
-      }
-   }
-}
 
 bool ValueSame(float a, float b) {
   return fabs(a - b) < numeric_limits<float>::epsilon();
@@ -160,8 +123,8 @@ void VerifyResult(float (*c_back)[P]){
 	float(*a_host)[N] = new float[M][N];
 	float(*b_host)[P] = new float[N][P];
 	float(*c_host)[P] = new float[M][P];
-
-
+	
+	
 	// Each element of matrix a is 1.
     for (i = 0; i < M; i++)
 		for (j = 0; j < N; j++) a_host[i][j] = 1.0f;
@@ -173,9 +136,9 @@ void VerifyResult(float (*c_back)[P]){
 	// c_host is initialized to zero.
 	for (i = 0; i < M; i++)
 		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
-
+	
 	auto start_time = high_resolution_clock::now();
-
+	
     for (int row = 0; row < M; row += BLOCK_SIZE) {
         for (int col = 0; col < P; col += BLOCK_SIZE) {
             for (int k = 0; k < N; k += BLOCK_SIZE) {
@@ -193,12 +156,9 @@ void VerifyResult(float (*c_back)[P]){
     auto duration = duration_cast<milliseconds>(end_time - start_time);
 
     cout << "Execution time unparallelized: " << duration.count() << " milliseconds" << "\n";
-
-    cout << "\n______________________ \n C_host: \n";
-    printMatrix(c_host);
-
+	
 	bool mismatch_found = false;
-
+	
 	int print_count = 0;
 
 	  for (i = 0; i < M; i++) {
@@ -224,5 +184,5 @@ void VerifyResult(float (*c_back)[P]){
 	  } else {
 		cout << "Fail - The results mismatch!\n";
 	  }
-
+		
 }
