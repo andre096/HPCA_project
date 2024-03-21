@@ -67,7 +67,9 @@ int main() {
 				accessor a(a_buf, h, read_only);
 				accessor b(b_buf, h, read_only);
 				accessor c(c_buf, h, write_only);
-
+				
+				sycl::stream out(1024, 256, cgh);
+				
 				h.parallel_for(range(M, P), [=](auto index) {
 					size_t row = index[0]+BLOCK_SIZE;
 					size_t col = index[1]+BLOCK_SIZE;
@@ -86,10 +88,10 @@ int main() {
 								for (size_t j = k; j < k + BLOCK_SIZE; ++j) {
 									sum += a[{z, j}] * b[{j, i}];
 								}
+								out << "Sum:" << sum <<cl::sycl::endl;
 							}
 						}
 					}
-
 					c[index] = sum;
 				});
 			});
