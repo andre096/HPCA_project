@@ -68,11 +68,10 @@ int main() {
 				accessor b(b_buf, h, read_only);
 				accessor c(c_buf, h, write_only);
 				
-				sycl::stream out(1024, 256, cgh);
 				
 				h.parallel_for(range(M, P), [=](auto index) {
-					size_t row = index[0]+BLOCK_SIZE;
-					size_t col = index[1]+BLOCK_SIZE;
+					size_t row = index[0];
+					size_t col = index[1];
 					
 					float sum = 0.0f;
 
@@ -83,12 +82,11 @@ int main() {
 
 					// Perform block matrix multiplication
 					for (size_t k = 0; k < N; k += BLOCK_SIZE) {
-						for(size_t z = row; z < row  + BLOCK_SIZE; z++){
-							for (size_t i = col; i < col + BLOCK_SIZE; ++i) {
-								for (size_t j = k; j < k + BLOCK_SIZE; ++j) {
+						for(size_t z = start_row; z < start_row  + BLOCK_SIZE && z < M; z++){
+							for (size_t i = start_col; i < start_col + BLOCK_SIZE && i < P; ++i) {
+								for (size_t j = k; j < k + BLOCK_SIZE && j < N; ++j) {
 									sum += a[{z, j}] * b[{j, i}];
 								}
-								out << "Sum:" << sum <<cl::sycl::endl;
 							}
 						}
 					}
