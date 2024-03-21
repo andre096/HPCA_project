@@ -62,14 +62,13 @@ int main() {
       //});
     //});
         auto start_time = high_resolution_clock::now();
-
 			q.submit([&](auto &h) {
 				accessor a(a_buf, h, read_only);
 				accessor b(b_buf, h, read_only);
 				accessor c(c_buf, h, write_only);
 				
 				
-				h.parallel_for(range(M, P), [=](auto index) {
+				h.parallel_for(range(M, P, BLOCK_SIZE), [=](auto index) {
 					size_t row = index[0];
 					size_t col = index[1];
 					
