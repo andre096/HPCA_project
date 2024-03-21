@@ -30,7 +30,7 @@ int main() {
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
 
 
-    buffer<float, 2> a_buf(range(M, N));
+				buffer<float, 2> a_buf(range(M, N));
     buffer<float, 2> b_buf(range(N, P));
     buffer c_buf(reinterpret_cast<float *>(c_back), range(M, P));
 
@@ -68,9 +68,9 @@ int main() {
 				accessor c(c_buf, h, write_only);
 				
 				
-				h.parallel_for(range(M, P, BLOCK_SIZE), [=](auto index) {
-					size_t row = index[0];
-					size_t col = index[1];
+				h.parallel_for(range(M/BLOCK_SIZE, P/BLOCK_SIZE), [=](auto index) {
+					size_t row = index[0]*BLOCK_SIZE;
+					size_t col = index[1]*BLOCK_SIZE;
 					
 					float sum = 0.0f;
 
