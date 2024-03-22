@@ -40,24 +40,21 @@ int main() {
 
     q.submit([&](auto &h) {
       accessor a(a_buf, h, write_only);
-	  accessor b(b_buf, h, write_only);
-      h.parallel_for(range(M, P), [=](auto index) {
-        if (index[0] < N){
-			a[index] = 1.0f;
-		} else {
-			b[index] = index[0] + 1.0f;
-		}
+
+      h.parallel_for(range(M, N), [=](auto index) {
+        a[index] = 1.0f;
       });
     });
 
-    //q.submit([&](auto &h) {
-      //accessor b(b_buf, h, write_only);
+    q.submit([&](auto &h) {
+      accessor b(b_buf, h, write_only);
 
-      //h.parallel_for(range(N, P), [=](auto index) {
-        //b[index] = index[0] + 1.0f;
-      //});
-    //});
+      h.parallel_for(range(N, P), [=](auto index) {
+        b[index] = index[0] + 1.0f;
+      });
+    });
 	
+
         auto start_time = high_resolution_clock::now();
 			q.submit([&](auto &h) {
 				accessor a(a_buf, h, read_only);
