@@ -22,13 +22,13 @@ void VerifyResult(float (*c_back)[P]);
 int main() {
 		#if FPGA_EMULATOR
 	  // DPC++ extension: FPGA emulator selector on systems without FPGA card.
-	  ext::intel::fpga_emulator_selector d_selector;
+	  auto selector = ext::intel::fpga_emulator_selector_v;
 	#elif FPGA
 	  // DPC++ extension: FPGA selector on systems with FPGA card.
-	  ext::intel::fpga_selector d_selector;
+	  auto selector = ext::intel::fpga_selector_v;
 	#else
 	  // The default device selector will select the most performant device.
-	  default_selector d_selector;
+	  auto selector = default_selector_v;
 	#endif
 
 	float(*c_back)[P] = new float[M][P];
@@ -38,7 +38,7 @@ int main() {
 		for (int j = 0; j < P; j++) c_back[i][j] = 0.0f;
   try {
 
-    queue q(default_selector_v);
+    queue q(selector);
 
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
 
