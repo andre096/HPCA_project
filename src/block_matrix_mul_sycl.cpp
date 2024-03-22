@@ -74,21 +74,17 @@ int main() {
 					
 					float sum = 0.0f;
 
-					// Calculate the starting indices of the current block
-					size_t start_row = row - row % BLOCK_SIZE;
-					size_t start_col = col - col % BLOCK_SIZE;
-
-
 					// Perform block matrix multiplication
+					for(size_t k = 0; k < N; k+=BLOCK_SIZE){
 						for(size_t z = row; z < row  + BLOCK_SIZE; z++){
 							for (size_t i = col; i < col + BLOCK_SIZE; ++i) {
-								for (size_t j = 0; j < BLOCK_SIZE; ++j) {
-									sum += a[{z, col + j}] * b[{j + row, i}];
+								for (size_t j = k; j < k + BLOCK_SIZE; ++j) {
+									c[{z, i}] += a[{z, j}] * b[{j, i}];
 								}
 							}
 						}
-					
-					c[index] = sum;
+					}
+				//c[{index] = sum;
 				});
 			});
 		q.wait();
@@ -140,13 +136,14 @@ void VerifyResult(float (*c_back)[P]){
 	
 	auto start_time = high_resolution_clock::now();
 	
-    for (int row = 0; row < M; row += BLOCK_SIZE) {
-        for (int col = 0; col < P; col += BLOCK_SIZE) {
-            for (int k = 0; k < N; k += BLOCK_SIZE) {
-                for (int i = row; i < std::min(row + BLOCK_SIZE, M); ++i) {
-                    for (int j = col; j < std::min(col + BLOCK_SIZE, P); ++j) {
-                        for (int kk = k; kk < std::min(k + BLOCK_SIZE, N); ++kk) {
-                            c_host[i][j] += a_host[i][kk] * b_host[kk][j];
+    for (ii = 0; ii < M; ii += BLOCK_SIZE) {
+        for (jj = 0; jj < P; jj += BLOCK_SIZE) {
+            for (kk = 0; kk < N; kk += BLOCK_SIZE) {
+                // Multiply block of A and B
+                for (i = ii; i < ii + BLOCK_SIZE && i < M; i++) {
+                    for (j = jj; j < jj + BLOCK_SIZE && j < P; j++) {
+                        for (k = kk; k < kk + BLOCK_SIZE && k < N; k++) {
+                            c_host[i][j] += a_host[i][k] * b_host[k][j];
                         }
                     }
                 }
