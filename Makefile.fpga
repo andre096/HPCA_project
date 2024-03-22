@@ -1,0 +1,24 @@
+CXX := dpcpp
+CXXFLAGS = -O2 -g -std=c++17
+
+SRC := src/matrix_mul_dpcpp.cpp
+
+.PHONY: fpga_emu run_emu  clean
+
+fpga_emu: matrix_mul_dpcpp.fpga_emu
+report: matrix_mul_dpcpp.a
+
+matrix_mul_dpcpp.fpga_emu: $(SRC)
+        $(CXX) $(CXXFLAGS) -fintelfpga $^ -o $@ -DFPGA_EMULATOR=1
+
+a.o: $(SRC)
+        $(CXX) $(CXXFLAGS) -fintelfpga -c $^ -o $@ -DFPGA=1
+
+run_emu: matrix_mul_dpcpp.fpga_emu
+         ./matrix_mul_dpcpp.fpga_emu
+
+dev.o: $(SRC)
+        $(CXX) $(CXXFLAGS) -fintelfpga -c $^ -o $@ -DFPGA=1
+
+clean:
+        rm -rf *.o *.d *.out *.mon *.emu *.aocr *.aoco *.prj *.fpga_emu *.fpga_emu matrix_mul_dpcpp.fpga *.a
