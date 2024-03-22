@@ -20,10 +20,8 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]);
 void VerifyResult(float (*c_back)[P]);
 
 int main(void) {
-	char device_name[256];
-	omp_get_device_name(device_name, 256);
 	int Result1;
-	cout << "Running on " << device_name << " device(s)\n";
+	cout << "Running on " << omp_get_default_device() << " device(s)\n";
 	cout << "Result of matrix multiplication using OpenMP: "<<"\n";
     MatrixMulBlock(a, b, c);
 	
