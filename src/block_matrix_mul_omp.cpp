@@ -51,25 +51,21 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
 	itime = omp_get_wtime();
 	
     // Perform block matrix multiplication
-	// #pragma omp parallel for private(i, j, k, ii, jj, kk) shared(a, b, c)
-    #pragma omp target teams distribute parallel for map(to : a, b) \
-		map(tofrom : c) thread_limit(128)
-	{
-		for (ii = 0; ii < M; ii += BLOCK_SIZE) {
-			for (jj = 0; jj < P; jj += BLOCK_SIZE) {
-				for (kk = 0; kk < N; kk += BLOCK_SIZE) {
-					// Multiply block of A and B
-					for (i = ii; i < ii + BLOCK_SIZE && i < M; i++) {
-						for (j = jj; j < jj + BLOCK_SIZE && j < P; j++) {
-							for (k = kk; k < kk + BLOCK_SIZE && k < N; k++) {
-								c[i][j] += a[i][k] * b[k][j];
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+	#pragma omp target parallel for private(i, j, k, ii, jj, kk) shared(a, b, c)
+    for (ii = 0; ii < M; ii += BLOCK_SIZE) {
+        for (jj = 0; jj < P; jj += BLOCK_SIZE) {
+            for (kk = 0; kk < N; kk += BLOCK_SIZE) {
+                // Multiply block of A and B
+                for (i = ii; i < ii + BLOCK_SIZE && i < M; i++) {
+                    for (j = jj; j < jj + BLOCK_SIZE && j < P; j++) {
+                        for (k = kk; k < kk + BLOCK_SIZE && k < N; k++) {
+                            c[i][j] += a[i][k] * b[k][j];
+                        }
+                    }
+                }
+            }
+        }
+    }
 	ftime = omp_get_wtime();
 	exec_time = ftime-itime;
 	printf("Time taken for parallelized block multiplication is %f \n", exec_time);
