@@ -69,12 +69,12 @@ int main() {
 					for(size_t kk = 0; kk < N; kk+=BLOCK_SIZE){
 						for(size_t i = row; i < row  + BLOCK_SIZE; i++){
 							for (size_t j = col; j < col + BLOCK_SIZE; ++j) {
-								h.single_task[=](){	
+								h.single_task([=](){	
 									for (size_t k = kk; k < kk + BLOCK_SIZE; ++k) {
 										//c[{i, j}] += a[{i, k}] * b[{k, j}];
 										c.get_pointer()[i*M+j] += a.get_pointer()[i*N + k] * b.get_pointer()[k*P+j];
 									}
-								}
+								});
 							}
 						}
 					}
