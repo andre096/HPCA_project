@@ -30,7 +30,7 @@ int main() {
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
 
 
-	buffer<float, 2> a_buf(range(M, N));
+				buffer<float, 2> a_buf(range(M, N));
     buffer<float, 2> b_buf(range(N, P));
     buffer c_buf(reinterpret_cast<float *>(c_back), range(M, P));
 
@@ -40,17 +40,23 @@ int main() {
 
     q.submit([&](auto &h) {
       accessor a(a_buf, h, write_only);
-
-      h.parallel_for(range(M, N), [=](auto index) {
-        a[index] = 1.0f;
-      });
-	  
 	  accessor b(b_buf, h, write_only);
-
-      h.parallel_for(range(N, P), [=](auto index) {
-        b[index] = index[0] + 1.0f;
+      h.parallel_for(range(M, P), [=](auto index) {
+        if (index[0] < N){
+			a[index] = 1.0f;
+		} else {
+			b[index] = index[0] + 1.0f;
+		}
       });
     });
+
+    //q.submit([&](auto &h) {
+      //accessor b(b_buf, h, write_only);
+
+      //h.parallel_for(range(N, P), [=](auto index) {
+        //b[index] = index[0] + 1.0f;
+      //});
+    //});
 	
         auto start_time = high_resolution_clock::now();
 			q.submit([&](auto &h) {
