@@ -2,6 +2,8 @@
 #include <iostream>
 #include <limits>
 #include <chrono>
+#include <sycl/ext/intel/fpga_extensions.hpp>
+
 
 
 using namespace std;
@@ -18,13 +20,24 @@ constexpr int BLOCK_SIZE = 10;
 void VerifyResult(float (*c_back)[P]);
 
 int main() {
+		#if FPGA_EMULATOR
+	  // DPC++ extension: FPGA emulator selector on systems without FPGA card.
+	  ext::intel::fpga_emulator_selector d_selector;
+	#elif FPGA
+	  // DPC++ extension: FPGA selector on systems with FPGA card.
+	  ext::intel::fpga_selector d_selector;
+	#else
+	  // The default device selector will select the most performant device.
+	  default_selector d_selector;
+	#endif
+
 	float(*c_back)[P] = new float[M][P];
 
 	  // Intialize c_back
 	  for (int i = 0; i < M; i++)
 		for (int j = 0; j < P; j++) c_back[i][j] = 0.0f;
   try {
-	    
+
     queue q(default_selector_v);
 
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
@@ -53,14 +66,14 @@ int main() {
         b[index] = index[0] + 1.0f;
       });
     });
-	
+
         auto start_time = high_resolution_clock::now();
 			q.submit([&](auto &h) {
 				accessor a(a_buf, h, read_only);
 				accessor b(b_buf, h, read_only);
 				accessor c(c_buf, h, write_only);
-				
-				
+
+
 				h.parallel_for(range(M/BLOCK_SIZE, P/BLOCK_SIZE), [=](auto index) {
 					size_t row = index[0]*BLOCK_SIZE;
 					size_t col = index[1]*BLOCK_SIZE;
@@ -81,11 +94,11 @@ int main() {
 
         auto end_time = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end_time - start_time);
-		
+
 		cout << "Result of matrix multiplication using SYCL: "<<"\n";
         cout << "Execution time parallelized: " << duration.count() << " milliseconds" << "\n";
 
-		
+
 
 
 		} catch (sycl::exception const &e) {
@@ -110,8 +123,8 @@ void VerifyResult(float (*c_back)[P]){
 	float(*a_host)[N] = new float[M][N];
 	float(*b_host)[P] = new float[N][P];
 	float(*c_host)[P] = new float[M][P];
-	
-	
+
+
 	// Each element of matrix a is 1.
     for (i = 0; i < M; i++)
 		for (j = 0; j < N; j++) a_host[i][j] = 1.0f;
@@ -123,9 +136,9 @@ void VerifyResult(float (*c_back)[P]){
 	// c_host is initialized to zero.
 	for (i = 0; i < M; i++)
 		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
-	
+
 	auto start_time = high_resolution_clock::now();
-	
+
     for (ii = 0; ii < M; ii += BLOCK_SIZE) {
         for (jj = 0; jj < P; jj += BLOCK_SIZE) {
             for (kk = 0; kk < N; kk += BLOCK_SIZE) {
@@ -144,9 +157,9 @@ void VerifyResult(float (*c_back)[P]){
     auto duration = duration_cast<milliseconds>(end_time - start_time);
 
     cout << "Execution time unparallelized: " << duration.count() << " milliseconds" << "\n";
-	
+
 	bool mismatch_found = false;
-	
+
 	int print_count = 0;
 
 	  for (i = 0; i < M; i++) {
@@ -172,5 +185,5 @@ void VerifyResult(float (*c_back)[P]){
 	  } else {
 		cout << "Fail - The results mismatch!\n";
 	  }
-		
+
 }
