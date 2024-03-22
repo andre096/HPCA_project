@@ -21,11 +21,13 @@ void VerifyResult(float (*c_back)[P]);
 
 int main(void) {
 	int Result1;
-	
+	cout << "Running on " << omp_get_num_devices() << " device(s)\n";
+	cout << "The default device id: " << omp_get_default_device() << "\n";
+	cout << "Result of matrix multiplication using OpenMP: "<<"\n";
     MatrixMulBlock(a, b, c);
 	
 	
-	cout << "Result of matrix multiplication using OpenMP: ";
+	
     VerifyResult(c);	
 	
 
@@ -68,7 +70,7 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
     }
 	ftime = omp_get_wtime();
 	exec_time = ftime-itime;
-	printf("Time taken for parallelized block multiplication is %f \n", exec_time);
+	printf("Execution time parallelized: %f \n", exec_time);
 }
 
 
@@ -98,6 +100,8 @@ void VerifyResult(float (*c_back)[P]){
 	for (i = 0; i < M; i++)
 		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
 	
+	double itime, ftime, exec_time;
+	itime = omp_get_wtime();
 	for (ii = 0; ii < M; ii += BLOCK_SIZE) {
         for (jj = 0; jj < P; jj += BLOCK_SIZE) {
             for (kk = 0; kk < N; kk += BLOCK_SIZE) {
@@ -112,7 +116,9 @@ void VerifyResult(float (*c_back)[P]){
             }
         }
     }
-	
+	ftime = omp_get_wtime();
+	exec_time = ftime-itime;
+	printf("Execution time unparallelized: %f \n", exec_time);
 	bool mismatch_found = false;
 	
 	int print_count = 0;
