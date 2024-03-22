@@ -9,16 +9,16 @@ fpga_emu: block_matrix_mul_sycl.fpga_emu
 report: block_matrix_mul_sycl.a
 
 block_matrix_mul_sycl.fpga_emu: $(SRC)
-        $(CXX) $(CXXFLAGS) -fintelfpga $^ -o $@ -DFPGA_EMULATOR=1
+	$(CXX) $(CXXFLAGS) -fintelfpga $^ -o $@ -DFPGA_EMULATOR=1
 
 a.o: $(SRC)
-        $(CXX) $(CXXFLAGS) -fintelfpga -c $^ -o $@ -DFPGA=1
+	$(CXX) $(CXXFLAGS) -fintelfpga -c $^ -o $@ -DFPGA=1
 
 run_emu: block_matrix_mul_sycl.fpga_emu
-         ./block_matrix_mul_sycl.fpga_emu
+	./block_matrix_mul_sycl.fpga_emu
 
 dev.o: $(SRC)
-        $(CXX) $(CXXFLAGS) -fintelfpga -c $^ -o $@ -DFPGA=1
+	$(CXX) $(CXXFLAGS) -fintelfpga -c $^ -o $@ -DFPGA=1
 
 clean:
-        rm -rf *.o *.d *.out *.mon *.emu *.aocr *.aoco *.prj *.fpga_emu *.fpga_emu block_matrix_mul_sycl.fpga *.a
+	rm -rf *.o *.d *.out *.mon *.emu *.aocr *.aoco *.prj *.fpga_emu *.fpga_emu block_matrix_mul_sycl.fpga *.a
