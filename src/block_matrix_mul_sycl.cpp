@@ -30,7 +30,7 @@ int main() {
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
 
 
-				buffer<float, 2> a_buf(range(M, N));
+	buffer<float, 2> a_buf(range(M, N));
     buffer<float, 2> b_buf(range(N, P));
     buffer c_buf(reinterpret_cast<float *>(c_back), range(M, P));
 
@@ -44,23 +44,14 @@ int main() {
       h.parallel_for(range(M, N), [=](auto index) {
         a[index] = 1.0f;
       });
-    });
-
-    q.submit([&](auto &h) {
-      accessor b(b_buf, h, write_only);
+	  
+	  accessor b(b_buf, h, write_only);
 
       h.parallel_for(range(N, P), [=](auto index) {
         b[index] = index[0] + 1.0f;
       });
     });
 	
-    //q.submit([&](auto &h) {
-    //  accessor c(c_buf, h, write_only);
-
-      //h.parallel_for(range(M, P), [=](auto index) {
-        //c[index] = index[0] + 0.0f;
-      //});
-    //});
         auto start_time = high_resolution_clock::now();
 			q.submit([&](auto &h) {
 				accessor a(a_buf, h, read_only);
@@ -71,8 +62,6 @@ int main() {
 				h.parallel_for(range(M/BLOCK_SIZE, P/BLOCK_SIZE), [=](auto index) {
 					size_t row = index[0]*BLOCK_SIZE;
 					size_t col = index[1]*BLOCK_SIZE;
-					
-					float sum = 0.0f;
 
 					// Perform block matrix multiplication
 					for(size_t kk = 0; kk < N; kk+=BLOCK_SIZE){
@@ -84,7 +73,6 @@ int main() {
 							}
 						}
 					}
-				//c[{index] = sum;
 				});
 			});
 		q.wait();
