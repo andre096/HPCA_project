@@ -69,15 +69,9 @@ int main() {
 					for(size_t kk = 0; kk < N; kk+=BLOCK_SIZE){
 						for(size_t i = row; i < row  + BLOCK_SIZE; i++){
 							for (size_t j = col; j < col + BLOCK_SIZE; ++j) {
-								h.single_task([=](){	
-								auto c_ptr = c.template get_access<sycl::access::mode::read_write>().get_pointer();
-								auto a_ptr = a.template get_access<sycl::access::mode::read_write>().get_pointer();
-								auto b_ptr = b.template get_access<sycl::access::mode::read_write>().get_pointer();
-									for (size_t k = kk; k < kk + BLOCK_SIZE; ++k) {
-										//c[{i, j}] += a[{i, k}] * b[{k, j}];
-										c_ptr[i*M+j] += a_ptr[i*N + k] * b_ptr[k*P+j];
-									}
-								});
+								for (size_t k = kk; k < kk + BLOCK_SIZE; ++k) {
+									c[{i, j}] += a[{i, k}] * b[{k, j}];
+								}
 							}
 						}
 					}
