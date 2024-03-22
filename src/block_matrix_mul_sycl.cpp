@@ -75,11 +75,11 @@ int main() {
 					float sum = 0.0f;
 
 					// Perform block matrix multiplication
-					for(size_t k = 0; k < N; k+=BLOCK_SIZE){
-						for(size_t z = row; z < row  + BLOCK_SIZE; z++){
-							for (size_t i = col; i < col + BLOCK_SIZE; ++i) {
-								for (size_t j = k; j < k + BLOCK_SIZE; ++j) {
-									c[{z, i}] += a[{z, j}] * b[{j, i}];
+					for(size_t kk = 0; kk < N; kk+=BLOCK_SIZE){
+						for(size_t i = row; i < row  + BLOCK_SIZE; i++){
+							for (size_t j = col; j < col + BLOCK_SIZE; ++j) {
+								for (size_t k = kk; k < kk + BLOCK_SIZE; ++k) {
+									c[{i, j}] += a[{i, k}] * b[{k, j}];
 								}
 							}
 						}
