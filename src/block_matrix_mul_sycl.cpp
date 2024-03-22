@@ -37,7 +37,7 @@ int main() {
     cout << "Problem size: c(" << M << "," << P << ") = a(" << M << "," << N
          << ") * b(" << N << "," << P << ")\n";
 
-	cout << "Block size:"<<BLOCK_SIZE<<"\n";
+	cout << "Block size: "<<BLOCK_SIZE<<"\n";
     q.submit([&](auto &h) {
       accessor a(a_buf, h, write_only);
 
