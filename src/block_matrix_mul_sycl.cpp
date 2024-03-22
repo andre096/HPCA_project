@@ -37,7 +37,7 @@ int main() {
     cout << "Problem size: c(" << M << "," << P << ") = a(" << M << "," << N
          << ") * b(" << N << "," << P << ")\n";
 
-
+	cout << "Block size:"<<BLOCK_SIZE<<"\n";
     q.submit([&](auto &h) {
       accessor a(a_buf, h, write_only);
 
@@ -54,7 +54,6 @@ int main() {
       });
     });
 	
-
         auto start_time = high_resolution_clock::now();
 			q.submit([&](auto &h) {
 				accessor a(a_buf, h, read_only);
@@ -82,7 +81,8 @@ int main() {
 
         auto end_time = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(end_time - start_time);
-
+		
+		cout << "Result of matrix multiplication using SYCL: "<<"\n";
         cout << "Execution time parallelized: " << duration.count() << " milliseconds" << "\n";
 
 		
@@ -92,7 +92,6 @@ int main() {
 			cout << "An exception is caught while multiplying matrices.\n";
 			terminate();
 		}
-	  cout << "Result of matrix multiplication using SYCL: ";
 	  VerifyResult(c_back);
 	  delete[] c_back;
 
