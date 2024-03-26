@@ -41,9 +41,6 @@ int main() {
     queue q(selector);
 
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
-    cout << "Running on: "
-              << q.get_device().get_info<sycl::info::device::name>()
-              << std::endl;
 
 				buffer<float, 2> a_buf(range(M, N));
     buffer<float, 2> b_buf(range(N, P));
