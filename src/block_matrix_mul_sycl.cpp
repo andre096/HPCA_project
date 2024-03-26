@@ -41,8 +41,9 @@ int main() {
     queue q(selector);
 
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
-    const size_t max_device_work_group_size = kernel.get_work_group_info<sycl::info::kernel_work_group::preferred_work_group_size_multiple>(device);
-    cout << "max_device_work_group_size: " << max_device_work_group_size << "\n"; 
+    cout << "Running on: "
+              << q.get_device().get_info<sycl::info::device::name>()
+              << std::endl;
 
 				buffer<float, 2> a_buf(range(M, N));
     buffer<float, 2> b_buf(range(N, P));
