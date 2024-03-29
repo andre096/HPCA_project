@@ -9,7 +9,7 @@
 #define P 1000
 #define BLOCK_SIZE 10 // Define the block size
 
-#define THREADS 64
+#define THREADS 16
 
 using namespace std;
 
