@@ -63,7 +63,7 @@ int main() {
 				range local {1, BLOCK_SIZE};
 				
 				h.parallel_for(nd_range{global,local}, [=](nd_item<2> index) {
-					size_t sg = index.get_sub_group();
+					auto sg = index.get_sub_group();
 					
 					size_t row = index.get_global_id()[0];
 					size_t col = index.get_global_id()[1];
