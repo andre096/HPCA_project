@@ -1,86 +1,176 @@
-/* Adapted from: https://github.com/Apress/data-parallel-CPP
- *
- * Copyright (C) 2020 Intel Corporation
- *
- * SPDX-License-Identifier: MIT
- */
-
-#include <algorithm>
-#include <iostream>
-#include <random>
-
 #include <sycl/sycl.hpp>
+#include <iostream>
+#include <limits>
+#include <chrono>
 
+
+using namespace std;
 using namespace sycl;
+using namespace std::chrono;
 
-int
-main()
-{
-  // set up queue on any available device
-  queue Q;
+// Matrix size constants.
+constexpr int M = 1000;
+constexpr int N = 1000;
+constexpr int P = 1000;
+constexpr int BLOCK_SIZE = 10;
 
-  std::cout << "Running on: " << Q.get_device().get_info<info::device::name>()
-            << std::endl;
 
-  // initialize input and output memory on the host
-  constexpr size_t N = 256;
-  std::vector<double> a(N * N), b(N * N), c(N * N);
+void VerifyResult(float (*c_back)[P]);
 
-  // fill a and b with random numbers in the unit interval
-  std::random_device rd;
-  std::mt19937 mt(rd());
-  std::uniform_real_distribution<double> dist(0.0, 1.0);
+int main() {
+	float(*c_back)[P] = new float[M][P];
 
-  std::generate(a.begin(), a.end(), [&dist, &mt]() {
-    return dist(mt);
-  });
-  std::generate(b.begin(), b.end(), [&dist, &mt]() {
-    return dist(mt);
-  });
+	  // Intialize c_back
+	  for (int i = 0; i < M; i++)
+		for (int j = 0; j < P; j++) c_back[i][j] = 0.0f;
+  try {
+	    
+    queue q(default_selector_v);
 
-  // zero-out c
-  std::fill(c.begin(), c.end(), 0.0);
+    cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
 
-  {
-    // size of local range
-    constexpr size_t B = 4;
-    // Create buffers associated with inputs and output
-    buffer<double, 2> a_buf(a.data(), range<2>(N, N)),
-      b_buf(b.data(), range<2>(N, N)), c_buf(c.data(), range<2>(N, N));
 
-    // Submit the kernel to the queue
-    Q.submit([&](handler& cgh) {
-      accessor a { a_buf, cgh };
-      accessor b { b_buf, cgh };
-      accessor c { c_buf, cgh };
+				buffer<float, 2> a_buf(range(M, N));
+    buffer<float, 2> b_buf(range(N, P));
+    buffer c_buf(reinterpret_cast<float *>(c_back), range(M, P));
 
-      // declere global and local ranges
-      range global { N, N };
-      range local { B, B };
+    cout << "Problem size: c(" << M << "," << P << ") = a(" << M << "," << N
+         << ") * b(" << N << "," << P << ")\n";
 
-      cgh.parallel_for(nd_range { global, local }, [=](nd_item<2> it) {
-        auto j = it.get_global_id(0);
-        auto i = it.get_global_id(1);
-        for (auto k = 0; k < N; ++k) {
-          c[j][i] += a[j][k] * b[k][i];
-        }
+	cout << "Block size: "<<BLOCK_SIZE<<"\n";
+    q.submit([&](auto &h) {
+      accessor a(a_buf, h, write_only);
+
+      h.parallel_for(range(M, N), [=](auto index) {
+        a[index] = 1.0f;
       });
     });
-  }
 
-  // Check that all outputs match serial execution
-  bool passed = true;
-  for (int j = 0; j < N; ++j) {
-    for (int i = 0; i < N; ++i) {
-      double gold = 0.0;
-      for (int k = 0; k < N; ++k) {
-        gold += a[j * N + k] * b[k * N + i];
-      }
-      if (std::abs(gold - c[j * N + i]) / gold > 1.0e-12) {
-        passed = false;
-      }
+    q.submit([&](auto &h) {
+      accessor b(b_buf, h, write_only);
+
+      h.parallel_for(range(N, P), [=](auto index) {
+        b[index] = index[0] + 1.0f;
+      });
+    });
+	
+        auto start_time = high_resolution_clock::now();
+			q.submit([&](auto &h) {
+				accessor a(a_buf, h, read_only);
+				accessor b(b_buf, h, read_only);
+				accessor c(c_buf, h, write_only);
+				
+				
+				h.parallel_for(range(M/BLOCK_SIZE, P/BLOCK_SIZE), [=](auto index) {
+					size_t row = index[0]*BLOCK_SIZE;
+					size_t col = index[1]*BLOCK_SIZE;
+					float sum = 0.0f;
+					// Perform block matrix multiplication
+					for(size_t kk = 0; kk < N; kk+=BLOCK_SIZE){
+						for(size_t i = row; i < row  + BLOCK_SIZE; i++){
+							for (size_t j = col; j < col + BLOCK_SIZE; ++j) {
+								for (size_t k = kk; k < kk + BLOCK_SIZE; ++k) {
+									c[{i, j}] += a[{i, k}] * b[{k, j}];
+								}
+							}
+						}
+					}
+				});
+			});
+		q.wait();
+
+        auto end_time = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(end_time - start_time);
+		
+		cout << "Result of matrix multiplication using SYCL: "<<"\n";
+        cout << "Execution time parallelized: " << duration.count() << " milliseconds" << "\n";
+
+		
+
+
+		} catch (sycl::exception const &e) {
+			cout << "An exception is caught while multiplying matrices.\n";
+			terminate();
+		}
+	  VerifyResult(c_back);
+	  delete[] c_back;
+
+return 0;
+}
+
+
+bool ValueSame(float a, float b) {
+  return fabs(a - b) < numeric_limits<float>::epsilon();
+}
+
+void VerifyResult(float (*c_back)[P]){
+	// Check that the results are correct by comparing with host computing.
+	int i, j, k, ii, jj, kk;
+
+	float(*a_host)[N] = new float[M][N];
+	float(*b_host)[P] = new float[N][P];
+	float(*c_host)[P] = new float[M][P];
+	
+	
+	// Each element of matrix a is 1.
+    for (i = 0; i < M; i++)
+		for (j = 0; j < N; j++) a_host[i][j] = 1.0f;
+
+	// Each column of b_host is the sequence 1,2,...,N
+	for (i = 0; i < N; i++)
+		for (j = 0; j < P; j++) b_host[i][j] = i + 1.0f;
+
+	// c_host is initialized to zero.
+	for (i = 0; i < M; i++)
+		for (j = 0; j < P; j++) c_host[i][j] = 0.0f;
+	
+	auto start_time = high_resolution_clock::now();
+	
+    for (ii = 0; ii < M; ii += BLOCK_SIZE) {
+        for (jj = 0; jj < P; jj += BLOCK_SIZE) {
+            for (kk = 0; kk < N; kk += BLOCK_SIZE) {
+                // Multiply block of A and B
+                for (i = ii; i < ii + BLOCK_SIZE && i < M; i++) {
+                    for (j = jj; j < jj + BLOCK_SIZE && j < P; j++) {
+                        for (k = kk; k < kk + BLOCK_SIZE && k < N; k++) {
+                            c_host[i][j] += a_host[i][k] * b_host[k][j];
+                        }
+                    }
+                }
+            }
+        }
     }
-  }
-  std::cout << ((passed) ? "SUCCESS" : "FAILURE") << std::endl;
-  return (passed) ? 0 : 1;
+	auto end_time = high_resolution_clock::now();
+    auto duration = duration_cast<milliseconds>(end_time - start_time);
+
+    cout << "Execution time unparallelized: " << duration.count() << " milliseconds" << "\n";
+	
+	bool mismatch_found = false;
+	
+	int print_count = 0;
+
+	  for (i = 0; i < M; i++) {
+		for (j = 0; j < P; j++) {
+		  if (!ValueSame(c_back[i][j], c_host[i][j])) {
+			cout << "Fail - The result is incorrect for element: [" << i << ", "
+				 << j << "], expected: " << c_host[i][j]
+				 << ", but found: " << c_back[i][j] << "\n";
+			mismatch_found = true;
+			print_count++;
+			if (print_count == 5) break;
+		  }
+		}
+
+		if (print_count == 5) break;
+	  }
+	  delete[] a_host;
+	  delete[] b_host;
+	  delete[] c_host;
+
+	  if (!mismatch_found) {
+		cout << "Success - The results are correct!\n";
+	  } else {
+		cout << "Fail - The results mismatch!\n";
+	  }
+		
 }
