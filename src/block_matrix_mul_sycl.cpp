@@ -30,7 +30,7 @@ int main() {
     cout << "Device: " << q.get_device().get_info<info::device::name>() << "\n";
 
 
-				buffer<float, 2> a_buf(range(M, N));
+	buffer<float, 2> a_buf(range(M, N));
     buffer<float, 2> b_buf(range(N, P));
     buffer c_buf(reinterpret_cast<float *>(c_back), range(M, P));
 
@@ -56,25 +56,34 @@ int main() {
 	
         auto start_time = high_resolution_clock::now();
 			q.submit([&](auto &h) {
+                                sycl::stream out(1024,256,h);
 				accessor a(a_buf, h, read_only);
 				accessor b(b_buf, h, read_only);
 				accessor c(c_buf, h, write_only);
+				range global {M, P};
+				range local {1, BLOCK_SIZE};
 				
-				
-				h.parallel_for(range(M/BLOCK_SIZE, P/BLOCK_SIZE), [=](auto index) {
-					size_t row = index[0]*BLOCK_SIZE;
-					size_t col = index[1]*BLOCK_SIZE;
+				h.parallel_for(nd_range{global,local}, [=](nd_item<2> index)[[intel::reqd_sub_group_size(32)]] {
+					auto sg = index.get_sub_group();
+
+					//int size = sg.get_local_range()[0];
+					//int maxSize = sg.get_max_local_range()[0];
+					//out<<"size: "<<size<<" "<<"; maxSize :"<<maxSize<<sycl::endl;
+					
+
+					size_t row = index.get_global_id()[0];
+					size_t col = index.get_global_id()[1];
+					
+					size_t i = index.get_local_id()[1];
 					float sum = 0.0f;
-					// Perform block matrix multiplication
-					for(size_t kk = 0; kk < N; kk+=BLOCK_SIZE){
-						for(size_t i = row; i < row  + BLOCK_SIZE; i++){
-							for (size_t j = col; j < col + BLOCK_SIZE; ++j) {
-								for (size_t k = kk; k < kk + BLOCK_SIZE; ++k) {
-									c[{i, j}] += a[{i, k}] * b[{k, j}];
-								}
-							}
+					
+					for(size_t l = 0; l < P; l+=BLOCK_SIZE){
+						size_t tileA = a[row][l+i];
+						for(size_t k = 0; k < BLOCK_SIZE; k++){
+							sum+= group_broadcast(sg, tileA, k) * b[l + k][col];
 						}
 					}
+					c[row][col] = sum;
 				});
 			});
 		q.wait();

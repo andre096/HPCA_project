@@ -9,6 +9,8 @@
 #define P 1000
 #define BLOCK_SIZE 10 // Define the block size
 
+#define THREADS 64
+
 using namespace std;
 
 float a[M][N];
@@ -24,13 +26,8 @@ int main(void) {
 	cout << "Running on " << omp_get_default_device() << " device(s)\n";
 	cout << "Result of matrix multiplication using OpenMP: "<<"\n";
     MatrixMulBlock(a, b, c);
-	
-	
-	
     VerifyResult(c);	
-	
-
-    return 0;
+	return 0;
 }
 
 void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
@@ -51,6 +48,8 @@ void MatrixMulBlock(float (*a)[N], float (*b)[P], float (*c)[P]) {
 	double itime, ftime, exec_time;
 	itime = omp_get_wtime();
 	
+	//setting threads number
+	omp_set_num_threads(THREADS);
     // Perform block matrix multiplication
 	#pragma omp parallel for private(i, j, k, ii, jj, kk) shared(a, b, c)
     for (ii = 0; ii < M; ii += BLOCK_SIZE) {
