@@ -11,6 +11,10 @@ Work-group
 A work-group is a 1-, 2-, or 3-dimensional set of threads within the thread hierarchy. 
 In SYCL, synchronization across work-items is only possible with barriers for the work-items within
 the same work-group.
+
+Workgroupsize = Threads x Sub - groupSize
+with this formula we can manage the number of threads.
+https://www.intel.com/content/www/us/en/docs/oneapi/optimization-guide-gpu/2024-0/thread-mapping-and-gpu-occupancy.html#dropdown-1-0-4-1
 */
 
 #include <sycl/sycl.hpp>
