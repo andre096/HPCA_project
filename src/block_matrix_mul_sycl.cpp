@@ -1,3 +1,18 @@
+/*
+Work-item
+A work-item represents one of a collection of parallel executions of a kernel.
+
+Sub-group
+A sub-group represents a short range of consecutive work-items that are processed together 
+as a SIMD vector of length 8, 16, 32, or a multiple of the native vector length of a CPU with 
+Intel® UHD Graphics.
+
+Work-group
+A work-group is a 1-, 2-, or 3-dimensional set of threads within the thread hierarchy. 
+In SYCL, synchronization across work-items is only possible with barriers for the work-items within
+the same work-group.
+*/
+
 #include <sycl/sycl.hpp>
 #include <iostream>
 #include <limits>
