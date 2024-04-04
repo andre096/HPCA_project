@@ -15,6 +15,13 @@ the same work-group.
 Workgroupsize = Threads x Sub - groupSize
 with this formula we can manage the number of threads.
 https://www.intel.com/content/www/us/en/docs/oneapi/optimization-guide-gpu/2024-0/thread-mapping-and-gpu-occupancy.html#dropdown-1-0-4-1
+
+- Specify sub group size: intel::reqd_sub_group_size({8|16|32})
+- gettin max workGroup size: device::get_info<cl::sycl::info::device::max_work_group_size>()
+	The maximum work-group size is a constraint imposed by the hardware and GPU driver
+
+ - The "group_broadcast" function takes the value of the work-item with local id k in tileA 
+ and communicates it to all work-items in the sg sub-group:
 */
 
 #include <sycl/sycl.hpp>
